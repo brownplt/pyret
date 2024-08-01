@@ -1,0 +1,44 @@
+{
+	"name": "pyret-parley",
+	"displayName": "Pyret's Parley Interface for VSCode",
+	"description": "An interactive Pyret mode",
+	"version": "0.0.1",
+	"publisher": "jpolitz",
+	"private": true,
+	"license": "Apache-2.0",
+	"engines": {
+		"vscode": "^1.74.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [],
+	"main": "./out/extension.js",
+	"contributes": {
+		"customEditors": [
+			{
+				"viewType": "pyret-parley.parley",
+				"displayName": "Pyret Parley",
+				"selector": [
+					{
+                        "filenamePattern": "*.arr"
+					}
+				]
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"lint": "eslint \"src/**/*.ts\"",
+		"watch": "tsc -w -p ./"
+	},
+	"devDependencies": {
+		"@types/node": "^18",
+		"@types/vscode": "^1.73.0",
+		"@typescript-eslint/eslint-plugin": "^7.14.0",
+		"@typescript-eslint/parser": "^7.14.0",
+		"eslint": "^8.26.0",
+		"typescript": "^5.5.2"
+	}
+}
