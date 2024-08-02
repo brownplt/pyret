@@ -2,7 +2,7 @@
 	"name": "pyret-parley",
 	"displayName": "(Experimental) Pyret's Parley Interface for VSCode",
 	"description": "An interactive Pyret mode",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"publisher": "PyretProgrammingLanguage",
 	"private": true,
 	"license": "Apache-2.0",
@@ -21,7 +21,7 @@
 				"displayName": "Pyret Parley",
 				"selector": [
 					{
-                        "filenamePattern": "*.parrley"
+						"filenamePattern": "*.parrley"
 					}
 				]
 			},
@@ -30,7 +30,7 @@
 				"displayName": "Pyret code.pyret.org",
 				"selector": [
 					{
-                        "filenamePattern": "*.arr"
+						"filenamePattern": "*.arr"
 					}
 				]
 			}
