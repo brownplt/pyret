@@ -9,5 +9,4 @@ npm run compile
 
 Press F5 and choose to run as an extension, then open a .arr file
 
-Right now there is no connection between page and filesystem, it just opens a
-plain Parley page.
+NB this is running Pyret-of-today (not anchor). If you open up a `.parley` file you'll get that editor, but it doesn't sync with the filesystem yet.
