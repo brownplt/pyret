@@ -21,6 +21,15 @@
 				"displayName": "Pyret Parley",
 				"selector": [
 					{
+                        "filenamePattern": "*.parrley"
+					}
+				]
+			},
+			{
+				"viewType": "pyret-parley.cpo",
+				"displayName": "Pyret code.pyret.org",
+				"selector": [
+					{
                         "filenamePattern": "*.arr"
 					}
 				]
