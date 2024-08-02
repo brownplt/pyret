@@ -1,9 +1,9 @@
 {
 	"name": "pyret-parley",
-	"displayName": "Pyret's Parley Interface for VSCode",
+	"displayName": "(Experimental) Pyret's Parley Interface for VSCode",
 	"description": "An interactive Pyret mode",
 	"version": "0.0.1",
-	"publisher": "jpolitz",
+	"publisher": "PyretProgrammingLanguage",
 	"private": true,
 	"license": "Apache-2.0",
 	"engines": {
