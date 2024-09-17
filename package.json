@@ -13,6 +13,7 @@
 		"Other"
 	],
 	"activationEvents": [],
+	"repository": "https://github.com/jpolitz/pyret-parley-vscode",
 	"main": "./out/extension.js",
 	"contributes": {
 		"customEditors": [
