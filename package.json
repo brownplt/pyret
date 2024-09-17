@@ -2,7 +2,7 @@
 	"name": "pyret-parley",
 	"displayName": "(Experimental) Pyret Interactive Editor for VSCode",
 	"description": "An interactive Pyret mode",
-	"version": "0.6.0",
+	"version": "0.7.0",
 	"publisher": "PyretProgrammingLanguage",
 	"private": true,
 	"license": "Apache-2.0",
