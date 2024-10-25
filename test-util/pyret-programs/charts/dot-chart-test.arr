@@ -6,7 +6,7 @@ include math
 
 labels = [list: "cats", "dogs", "ants", "elephants"]
 count = [list: 3, 7, 4, 9]
-nlabels = [list: 2, 4, 3, 1]
+nlabels = [list: 2, 6, 3, 1]
 
 zoo-series = from-list.dot-chart(labels, count)
 

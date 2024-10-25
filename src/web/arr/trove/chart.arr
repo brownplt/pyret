@@ -1924,13 +1924,26 @@ fun num-dot-chart-from-list(labels :: P.LoN, values :: P.LoN) -> DataSeries bloc
        and construct a dot chart
        ```
   labels.each(check-num)
-  num-dot-chart-args = map2(lam(x-elt, y-elt): [list: x-elt, y-elt] end, 
+  labels-length = labels.length()
+  when labels-length == 0:
+    raise("num-dot-chart: can't have empty data")
+  end
+  when labels-length <> values.length():
+    raise("num-dot-chart: labels and values should have the same length")
+  end
+  any-x-value = labels.get(0)
+  min-x-value = fold(num-min, any-x-value, labels)
+  max-x-value = fold(num-max, any-x-value, labels)
+  num-dot-chart-args = map2(lam(x-value, y-value): [list: x-value, y-value] end, 
                             labels, values)
-    .sort-by({(x-list, y-list): x-list.get(0) < y-list.get(0)},
-             {(x-list, y-list): x-list.get(0) == y-list.get(0)})
-  dot-chart-from-list(map(lam(x-list): num-to-string(x-list.get(0)) end,
+    .append(range(min-x-value, max-x-value)
+      .filter(lam(x-value): not(member(labels, x-value)) end)
+      .map(lam(x-value): [list: x-value, 0] end))
+    .sort-by({(x1y1, x2y2): x1y1.get(0) <  x2y2.get(0)},
+             {(x1y1, x2y2): x1y1.get(0) == x2y2.get(0)})
+  dot-chart-from-list(map(lam(x1y1): num-to-string(x1y1.get(0)) end,
                           num-dot-chart-args),
-                      map(lam(x-list): x-list.get(1) end, num-dot-chart-args))
+                      map(lam(x1y1): x1y1.get(1) end, num-dot-chart-args))
 end
 
 fun dot-chart-from-list(labels :: P.LoS, values :: P.LoN) -> DataSeries block:
