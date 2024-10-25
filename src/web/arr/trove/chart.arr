@@ -1918,6 +1918,38 @@ fun bar-chart-from-list(labels :: P.LoS, values :: P.LoN) -> DataSeries block:
   data-series.make-axis(max-positive-height, max-negative-height)
 end
 
+fun num-dot-chart-no-bin(x-values :: P.LoN, y-values :: P.LoN,
+      min-x-value :: Number, max-x-value :: Number):
+  num-dot-chart-args = map2(lam(x-value, y-value): [list: x-value, y-value] end,
+                            x-values, y-values)
+    .append(range(min-x-value, max-x-value)
+      .filter(lam(x-value): not(member(x-values, x-value)) end)
+      .map(lam(x-value): [list: x-value, 0] end))
+    .sort-by({(x1y1, x2y2): x1y1.get(0) < x2y2.get(0)},
+             {(x1y1, x2y2): x1y1.get(0) == x2y2.get(0)})
+  dot-chart-from-list(map(lam(x1y1): num-to-string(x1y1.get(0)) end,
+                          num-dot-chart-args),
+                      map(lam(x1y1): x1y1.get(1) end, num-dot-chart-args))
+end
+
+fun num-dot-chart-bin(labels :: P.LoN, values :: P.LoN,
+      min-x-value :: Number, max-x-value :: Number) block:
+  num-bins = 10
+  dot-chart-bin-width = (max-x-value - min-x-value) / num-bins
+  num-dot-chart-args = for map(range-iter from range(0, num-bins)):
+      [raw-array: num-to-string-digits(min-x-value +
+        ((range-iter + 0.5) * dot-chart-bin-width), 3), 0]
+    end
+  for each2(x-value from labels, y-value from values):
+    x-index = num-min(num-floor((x-value - min-x-value) / dot-chart-bin-width),
+                      num-bins - 1)
+    this-ra = num-dot-chart-args.get(x-index)
+    raw-array-set(this-ra, 1, raw-array-get(this-ra, 1) + y-value)
+  end
+  dot-chart-from-list(map(lam(x1y1): raw-array-get(x1y1, 0) end, num-dot-chart-args),
+                      map(lam(x1y1): raw-array-get(x1y1, 1) end, num-dot-chart-args))
+end
+
 fun num-dot-chart-from-list(labels :: P.LoN, values :: P.LoN) -> DataSeries block:
   doc: ```
        Consume labels, a list of numbers, and values, a list of numbers
@@ -1934,16 +1966,11 @@ fun num-dot-chart-from-list(labels :: P.LoN, values :: P.LoN) -> DataSeries bloc
   any-x-value = labels.get(0)
   min-x-value = fold(num-min, any-x-value, labels)
   max-x-value = fold(num-max, any-x-value, labels)
-  num-dot-chart-args = map2(lam(x-value, y-value): [list: x-value, y-value] end, 
-                            labels, values)
-    .append(range(min-x-value, max-x-value)
-      .filter(lam(x-value): not(member(labels, x-value)) end)
-      .map(lam(x-value): [list: x-value, 0] end))
-    .sort-by({(x1y1, x2y2): x1y1.get(0) <  x2y2.get(0)},
-             {(x1y1, x2y2): x1y1.get(0) == x2y2.get(0)})
-  dot-chart-from-list(map(lam(x1y1): num-to-string(x1y1.get(0)) end,
-                          num-dot-chart-args),
-                      map(lam(x1y1): x1y1.get(1) end, num-dot-chart-args))
+  if (not(all(num-is-integer, labels)) or ((max-x-value - min-x-value) > 15)): 
+    num-dot-chart-bin(labels, values, min-x-value, max-x-value)
+  else:
+    num-dot-chart-no-bin(labels, values, min-x-value, max-x-value)
+  end
 end
 
 fun dot-chart-from-list(labels :: P.LoS, values :: P.LoN) -> DataSeries block:
