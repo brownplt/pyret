@@ -1934,14 +1934,28 @@ end
 
 fun num-dot-chart-bin(labels :: P.LoN, values :: P.LoN,
       min-x-value :: Number, max-x-value :: Number) block:
-  num-bins = 10
-  dot-chart-bin-width = (max-x-value - min-x-value) / num-bins
+  labels-length = labels.length()
+  median-index = labels-length / 2
+  sorted-labels = labels.sort()
+  sorted-labels-split = sorted-labels.split-at(num-floor(median-index))
+  sorted-labels-1st-half = sorted-labels.split-at(num-floor(median-index)).prefix
+  sorted-labels-2nd-half = sorted-labels.split-at(num-ceiling(median-index)).suffix
+  sorted-labels-iqr = ST.median(sorted-labels-2nd-half) -
+                        ST.median(sorted-labels-1st-half)
+  dot-chart-bin-width-1 = ((2 * sorted-labels-iqr) /
+                            num-expt(labels-length, 1/3))
+  dot-chart-bin-width = if dot-chart-bin-width-1 > 1:
+      num-round-even(dot-chart-bin-width-1) else: dot-chart-bin-width-1 end
+  left-most-x-1 = min-x-value - (dot-chart-bin-width / 2)
+  left-most-x = if dot-chart-bin-width > 0.5: num-floor(left-most-x-1) else:
+                      left-most-x-1 end
+  num-bins = num-ceiling((max-x-value - left-most-x) / dot-chart-bin-width)
   num-dot-chart-args = for map(range-iter from range(0, num-bins)):
-      [raw-array: num-to-string-digits(min-x-value +
-        ((range-iter + 0.5) * dot-chart-bin-width), 3), 0]
+    [raw-array: num-to-string-digits(left-most-x +
+      (range-iter * dot-chart-bin-width), 2), 0]
     end
   for each2(x-value from labels, y-value from values):
-    x-index = num-min(num-floor((x-value - min-x-value) / dot-chart-bin-width),
+    x-index = num-min(num-floor((x-value - left-most-x) / dot-chart-bin-width),
                       num-bins - 1)
     this-ra = num-dot-chart-args.get(x-index)
     raw-array-set(this-ra, 1, raw-array-get(this-ra, 1) + y-value)
