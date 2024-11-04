@@ -64,8 +64,8 @@ check "Dot chart, numerical data":
   n-zoo-more satisfies is-image
 end
 
-r-x-values = [list: 2.5, 10.2, 14.5, 44.4, 45.4, 80.9]
-r-y-values = [list:   2,  6,     3,    4,    7,   3]
+r-x-values = [list: 1, 2, 3, 4, 5, 6, 8, 9, 10, 24, 30]
+r-y-values = [list: 5, 3, 6, 4, 3, 3, 3, 2,  1,  1,  1]
 r-zoo-series = from-list.num-dot-chart(r-x-values, r-y-values)
 
 r-zoo = render-image(r-zoo-series)

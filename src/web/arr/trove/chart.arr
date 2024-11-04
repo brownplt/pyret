@@ -1942,17 +1942,25 @@ fun num-dot-chart-bin(labels :: P.LoN, values :: P.LoN,
   sorted-labels-2nd-half = sorted-labels.split-at(num-ceiling(median-index)).suffix
   sorted-labels-iqr = ST.median(sorted-labels-2nd-half) -
                         ST.median(sorted-labels-1st-half)
+  # bin width based on Freedman-Diaconis rule
   dot-chart-bin-width-1 = ((2 * sorted-labels-iqr) /
                             num-expt(labels-length, 1/3))
+  # if bin width > 1, make it an even int
   dot-chart-bin-width = if dot-chart-bin-width-1 > 1:
       num-round-even(dot-chart-bin-width-1) else: dot-chart-bin-width-1 end
   left-most-x-1 = min-x-value - (dot-chart-bin-width / 2)
-  left-most-x = if dot-chart-bin-width > 0.5: num-floor(left-most-x-1) else:
-                      left-most-x-1 end
+  # if all x's are positive, don't make first interval start negative
+  left-most-x-2 = if all(num-is-positive, labels) and num-is-negative(left-most-x-1):
+                      min-x-value else: left-most-x-1 end
+  # if bin width > 0.5, keep x's integral
+  left-most-x = if dot-chart-bin-width > 0.5: num-floor(left-most-x-2) else:
+                      left-most-x-2 end
   num-bins = num-ceiling((max-x-value - left-most-x) / dot-chart-bin-width)
   num-dot-chart-args = for map(range-iter from range(0, num-bins)):
-    [raw-array: num-to-string-digits(left-most-x +
-      (range-iter * dot-chart-bin-width), 2), 0]
+    [raw-array: "[" +
+      num-to-string(left-most-x + (range-iter * dot-chart-bin-width)) +
+      "," + num-to-string(left-most-x + ((range-iter + 1) * dot-chart-bin-width)) + ")",
+      0]
     end
   for each2(x-value from labels, y-value from values):
     x-index = num-min(num-floor((x-value - left-most-x) / dot-chart-bin-width),
