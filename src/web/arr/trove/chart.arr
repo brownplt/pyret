@@ -1934,6 +1934,24 @@ end
 
 fun num-dot-chart-bin(labels :: P.LoN, values :: P.LoN,
       min-x-value :: Number, max-x-value :: Number) block:
+  actual-num-of-xs = fold(lam(num1, num2): num1 + num2 end, 0, values)
+  num-dot-chart-args-ra = raw-array-build(lam(_): [raw-array: 0, 0] end, actual-num-of-xs)
+  var num-dot-chart-i = 0
+  for each2(x-value from labels, y-value from values):
+    for each(y-value-i from range(1, y-value + 1)) block:
+       raw-array-set(num-dot-chart-args-ra, num-dot-chart-i,
+         [raw-array: x-value, y-value-i])
+       num-dot-chart-i := num-dot-chart-i + 1
+    end
+  end
+  num-dot-chart-args = raw-array-to-list(num-dot-chart-args-ra)
+  # spy: num-dot-chart-args end
+  scatter-plot-from-list(map(lam(x1y1): raw-array-get(x1y1, 0) end, num-dot-chart-args),
+    map(lam(x1y1): raw-array-get(x1y1, 1) end, num-dot-chart-args))
+end
+
+fun old-num-dot-chart-bin(labels :: P.LoN, values :: P.LoN,
+      min-x-value :: Number, max-x-value :: Number) block:
   labels-length = labels.length()
   median-index = labels-length / 2
   sorted-labels = labels.sort()
@@ -1988,6 +2006,7 @@ fun num-dot-chart-from-list(labels :: P.LoN, values :: P.LoN) -> DataSeries bloc
   any-x-value = labels.get(0)
   min-x-value = fold(num-min, any-x-value, labels)
   max-x-value = fold(num-max, any-x-value, labels)
+  # create a binned chart if x range is large or if some x's are noninteger
   if (not(all(num-is-integer, labels)) or ((max-x-value - min-x-value) > 15)): 
     num-dot-chart-bin(labels, values, min-x-value, max-x-value)
   else:
