@@ -1178,6 +1178,7 @@ default-scatter-plot-series = {
   trendlineWidth: 3, 
   trendlineOpacity: 0.3,
   trendlineDegree: 3,  
+  dot-chart: false
 }
 
 type IntervalChartSeries = {
@@ -1932,22 +1933,24 @@ fun num-dot-chart-no-bin(x-values :: P.LoN, y-values :: P.LoN,
                       map(lam(x1y1): x1y1.get(1) end, num-dot-chart-args))
 end
 
-fun num-dot-chart-bin(labels :: P.LoN, values :: P.LoN,
-      min-x-value :: Number, max-x-value :: Number) block:
+fun num-dot-chart-bin(labels :: P.LoN, values :: P.LoN) block:
   actual-num-of-xs = fold(lam(num1, num2): num1 + num2 end, 0, values)
-  num-dot-chart-args-ra = raw-array-build(lam(_): [raw-array: 0, 0] end, actual-num-of-xs)
+  num-dot-chart-args-ra = raw-array-build(lam(_): 0 end, actual-num-of-xs)
   var num-dot-chart-i = 0
   for each2(x-value from labels, y-value from values):
-    for each(y-value-i from range(1, y-value + 1)) block:
-       raw-array-set(num-dot-chart-args-ra, num-dot-chart-i,
-         [raw-array: x-value, y-value-i])
+    for each(y-value-i from range(0, y-value)) block:
+       raw-array-set(num-dot-chart-args-ra, num-dot-chart-i, x-value)
        num-dot-chart-i := num-dot-chart-i + 1
     end
   end
-  num-dot-chart-args = raw-array-to-list(num-dot-chart-args-ra)
-  # spy: num-dot-chart-args end
-  scatter-plot-from-list(map(lam(x1y1): raw-array-get(x1y1, 0) end, num-dot-chart-args),
-    map(lam(x1y1): raw-array-get(x1y1, 1) end, num-dot-chart-args))
+  scatter-plot-xs = raw-array-to-list(num-dot-chart-args-ra)
+  scatter-plot-ys = map(lam(_): 0 end, scatter-plot-xs)
+  default-scatter-plot-series.{
+    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]},
+      scatter-plot-xs, scatter-plot-ys,
+      scatter-plot-xs.map({(_): ''}), scatter-plot-xs.map({(_): false})),
+    dot-chart: true
+  } ^ scatter-plot-series
 end
 
 fun old-num-dot-chart-bin(labels :: P.LoN, values :: P.LoN,
@@ -2008,7 +2011,7 @@ fun num-dot-chart-from-list(labels :: P.LoN, values :: P.LoN) -> DataSeries bloc
   max-x-value = fold(num-max, any-x-value, labels)
   # create a binned chart if x range is large or if some x's are noninteger
   if (not(all(num-is-integer, labels)) or ((max-x-value - min-x-value) > 15)): 
-    num-dot-chart-bin(labels, values, min-x-value, max-x-value)
+    num-dot-chart-bin(labels, values)
   else:
     num-dot-chart-no-bin(labels, values, min-x-value, max-x-value)
   end

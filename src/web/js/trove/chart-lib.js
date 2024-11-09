@@ -1286,6 +1286,7 @@
 
     // ASSERT: if we're using custom images, *every* series will have idx 3 defined
     const hasImage = combined.every(p => get(p, 'ps').filter(p => p[3]).length > 0);
+    let dotChartP = false;
 
     const options = {
       tooltip: {isHtml: true},
@@ -1302,6 +1303,10 @@
         });
         // If we have our own image, make the point small and transparent
         if (i < scatters.length) {
+          if (get(p, 'dot-chart')) {
+            // console.log('dot chart scatter plot found');
+            dotChartP = true;
+          }
           $.extend(seriesOptions, {
             pointSize: hasImage ? 1 : toFixnum(get(p, 'point-size')),
             lineWidth: 0,
@@ -1556,7 +1561,7 @@
             .append(redrawG);
         }
 
-        if(!hasImage) { return; } // If we don't have images, our work is done!
+        if(!hasImage && !dotChartP) { return; } // If we don't have images, our work is done!
         
         // if custom images are defined, use the image at that location
         // and overlay it atop each dot
@@ -1571,6 +1576,7 @@
           // This is brittle and needs to be revisited
           const svgRoot = chart.container.querySelector('svg');
           // const markers = svgRoot.children[3].children[2].children; from sbcContinuation
+          if (hasImage) {
           let markers;
           if(legendEnabled) {
             markers = svgRoot.children[2].children[2].children;
@@ -1601,6 +1607,32 @@
               svgRoot.appendChild(imageElt);
             });
           });
+          }
+
+          if (dotChartP) {
+            const circles = svgRoot.children[1].children[2].getElementsByTagName('circle');
+            // console.log('circles=', circles);
+            const numCircles = circles.length;
+            let offsetQuantum = 0;
+            let currentX = false;
+            let currentNumOffsets = 0;
+            for(let i = 0; i < numCircles; i++) {
+              const circle = circles[i];
+              // console.log('updating circle', i);
+              if (offsetQuantum === 0) {
+                offsetQuantum = 2* Number(circle.getAttribute('r'));
+              }
+              const circleX = Number(circle.getAttribute('cx'));
+              if (currentX === circleX) {
+                currentNumOffsets++;
+              } else {
+                currentX = circleX; currentNumOffsets = 0;
+              }
+              const circleY = Number(circle.getAttribute('cy'));
+              circle.setAttribute('cy',
+                circleY - (currentNumOffsets + 0.5)*offsetQuantum);
+            }
+          }
         });
       },
     };
