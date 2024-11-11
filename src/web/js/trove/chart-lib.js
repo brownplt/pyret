@@ -1423,6 +1423,13 @@
       options['trendlines'][0]['degree'] = trendlineDegree;
     }
 
+    if (dotChartP) {
+      options['vAxis'] = {
+        ticks: [],
+        minValue: 0,
+      }
+    }
+
     const pointshapeType = get(ser0, 'pointshapeType');
     const pointshapeSides = toFixnum(get(ser0, 'pointshapeSides'));
     const pointshapeDent = toFixnum(get(ser0, 'pointshapeDent'));
@@ -1610,28 +1617,29 @@
           }
 
           if (dotChartP) {
-            const circles = svgRoot.children[1].children[2].getElementsByTagName('circle');
+            const circles = [...svgRoot.children[1].children[2].getElementsByTagName('circle')];
             // console.log('circles=', circles);
             const numCircles = circles.length;
-            let offsetQuantum = 0;
-            let currentX = false;
+            const circle0 = circles[0];
+            // const circleR = toFixnum(get(combined[0], 'point-size'));
+            const circleR = Number(circle0.getAttribute('r'));
+            const offsetQuantum = 2 * circleR;
+            let lastX = false;
             let currentNumOffsets = 0;
-            for(let i = 0; i < numCircles; i++) {
-              const circle = circles[i];
+            circles.forEach((circle) => {
               // console.log('updating circle', i);
-              if (offsetQuantum === 0) {
-                offsetQuantum = 2* Number(circle.getAttribute('r'));
-              }
               const circleX = Number(circle.getAttribute('cx'));
-              if (currentX === circleX) {
+              if (lastX &&
+                (lastX === circleX || (circleX - lastX) < offsetQuantum)) {
+                circle.setAttribute('cx', lastX);
                 currentNumOffsets++;
               } else {
-                currentX = circleX; currentNumOffsets = 0;
+                lastX = circleX; currentNumOffsets = 0;
               }
-              const circleY = Number(circle.getAttribute('cy'));
-              circle.setAttribute('cy',
-                circleY - (currentNumOffsets + 0.5)*offsetQuantum);
-            }
+              let circleY = Number(circle.getAttribute('cy'));
+              circleY -= (currentNumOffsets + 0.5) * offsetQuantum;
+              circle.setAttribute('cy', circleY);
+            });
           }
         });
       },

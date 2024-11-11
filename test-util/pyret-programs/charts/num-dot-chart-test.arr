@@ -33,3 +33,7 @@ r-zoo-series = from-list.num-dot-chart(r-x-values, r-y-values)
 r-zoo = render-image(r-zoo-series)
 
 # Do r-zoo.display() to see resizable chart
+
+fun t():
+  r-zoo.display()
+end
