@@ -25,28 +25,34 @@ fun render-image(series):
   render-chart(series)
 end
 
-# r-x-values = [list: 1, 2, 3, 4, 5, 6, 8, 9, 10, 24, 30]
-# r-y-values = [list: 5, 3, 6, 4, 3, 3, 3, 2,  1,  1,  1]
+# x-values = [list: 1, 2, 3, 4, 5, 6, 8, 9, 10, 24, 30]
+# freqs    = [list: 5, 3, 6, 4, 3, 3, 3, 2,  1,  1,  1]
 
-r-x-values = [list: 1,1,1,1,1,
-                    2,2,2,
-                    3,3,3,3,3,3,
-                    4,4,4,4,
-                    5,5,5,
-                    6,6,6,
-                    8,8,8,
-                    9,9,
-                    10,
-                    24,
-                    30]
+r1-x-values = [list: 1,1,1,1,1,
+                     2,2,2,
+                     3,3,3,3,3,3,
+                     4,4,4,4,
+                     5,5,5,
+                     6,6,6,
+                     8,8,8,
+                     9,9,
+                     10,
+                     24,
+                     30]
 
-# r-zoo-series = from-list.num-dot-chart(r-x-values, r-y-values)
-r-zoo-series = from-list.num-dot-chart(r-x-values)
+# r2-x-values is same as r1-x-values but in different order
+r2-x-values = [list: 1,2,3,4,5,6,8,9,10,24,30,
+                     1,2,3,4,5,6,8,9,
+                     1,2,3,4,5,6,8,
+                     1,  3,4,
+                     1,  3,
+                         3]
 
-r-zoo = render-image(r-zoo-series)
+r1-zoo-series = from-list.num-dot-chart(r1-x-values)
+r1-zoo = render-image(r1-zoo-series)
 
-# Do r-zoo.display() to see resizable chart
+r2-zoo-series = from-list.num-dot-chart(r2-x-values)
+r2-zoo = render-image(r2-zoo-series)
 
-fun t():
-  r-zoo.display()
-end
+fun t1(): r1-zoo.display() end
+fun t2(): r2-zoo.display() end

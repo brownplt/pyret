@@ -1624,20 +1624,23 @@
             // const circleR = toFixnum(get(combined[0], 'point-size'));
             const circleR = Number(circle0.getAttribute('r'));
             const offsetQuantum = 2 * circleR;
-            let lastX = false;
-            let currentNumOffsets = 0;
+            let prevDotArray = [];
+            function tooClose(x, y) {
+              return prevDotArray.some(function(n) {
+                return ((Math.abs(x - n[0]) < offsetQuantum) &&
+                  (Math.abs(y - n[1]) < offsetQuantum));
+              });
+            }
+
             circles.forEach((circle) => {
               // console.log('updating circle', i);
               const circleX = Number(circle.getAttribute('cx'));
-              if (lastX &&
-                (lastX === circleX || (circleX - lastX) < offsetQuantum)) {
-                // circle.setAttribute('cx', lastX); // if we don't want horiz stagger
-                currentNumOffsets++;
-              } else {
-                lastX = circleX; currentNumOffsets = 0;
+              let circleY = Number(circle.getAttribute('cy')) - 0.5*offsetQuantum;
+              while (tooClose(circleX, circleY)) {
+                circleY -= offsetQuantum;
               }
-              let circleY = Number(circle.getAttribute('cy'));
-              circleY -= (currentNumOffsets + 0.5) * offsetQuantum;
+
+              prevDotArray.push([circleX, circleY]);
 
               const circleElt = circle.cloneNode(false);
               circleElt.classList.add('__img_labels'); // tag for later gc
