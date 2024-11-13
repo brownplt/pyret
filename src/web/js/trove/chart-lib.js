@@ -1631,14 +1631,22 @@
               const circleX = Number(circle.getAttribute('cx'));
               if (lastX &&
                 (lastX === circleX || (circleX - lastX) < offsetQuantum)) {
-                circle.setAttribute('cx', lastX);
+                // circle.setAttribute('cx', lastX); // if we don't want horiz stagger
                 currentNumOffsets++;
               } else {
                 lastX = circleX; currentNumOffsets = 0;
               }
               let circleY = Number(circle.getAttribute('cy'));
               circleY -= (currentNumOffsets + 0.5) * offsetQuantum;
-              circle.setAttribute('cy', circleY);
+
+              const circleElt = circle.cloneNode(false);
+              circleElt.classList.add('__img_labels'); // tag for later gc
+              circleElt.setAttribute('cy', circleY);
+              circleElt.setAttribute('r', circleR);
+              circleElt.setAttribute('fill-opacity', 1);
+              Object.assign(circleElt, circle); // we should probably not steal *everything*...
+              circle.remove();
+              svgRoot.appendChild(circleElt);
             });
           }
         });
