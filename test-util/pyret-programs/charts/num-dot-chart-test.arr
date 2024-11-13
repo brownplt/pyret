@@ -25,10 +25,23 @@ fun render-image(series):
   render-chart(series)
 end
 
-r-x-values = [list: 1, 2, 3, 4, 5, 6, 8, 9, 10, 24, 30]
-r-y-values = [list: 5, 3, 6, 4, 3, 3, 3, 2,  1,  1,  1]
+# r-x-values = [list: 1, 2, 3, 4, 5, 6, 8, 9, 10, 24, 30]
+# r-y-values = [list: 5, 3, 6, 4, 3, 3, 3, 2,  1,  1,  1]
 
-r-zoo-series = from-list.num-dot-chart(r-x-values, r-y-values)
+r-x-values = [list: 1,1,1,1,1,
+                    2,2,2,
+                    3,3,3,3,3,3,
+                    4,4,4,4,
+                    5,5,5,
+                    6,6,6,
+                    8,8,8,
+                    9,9,
+                    10,
+                    24,
+                    30]
+
+# r-zoo-series = from-list.num-dot-chart(r-x-values, r-y-values)
+r-zoo-series = from-list.num-dot-chart(r-x-values)
 
 r-zoo = render-image(r-zoo-series)
 
