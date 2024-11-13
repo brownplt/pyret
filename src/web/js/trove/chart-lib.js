@@ -1241,6 +1241,7 @@
 
       const rowTemplate = new Array(combined.length * 4 + 1).fill(null);
       const intervalP = (i >= minIntervalIndex);
+      const dotChartP = Boolean(get(p, 'dot-chart'));
       if (!intervalP) {
         data.addRows(get(p, 'ps').map(row => {
           const currentRow = rowTemplate.slice();
@@ -1253,10 +1254,16 @@
             } else {
               labelRow = '';
             }
+            let labelRowY = null;
+            if (dotChartP) {
+              labelRowY = '';
+            } else {
+              labelRowY = `<p>y: <b>${currentRow[4*i + 1]}</b></p>`;
+            }
             currentRow[4*i + 2] = `<p>${legends[i]}</p>
 <p>x: <b>${currentRow[0]}</b></p>
-<p>y: <b>${currentRow[4*i + 1]}</b></p>
-              ${labelRow}`;
+${labelRowY}
+${labelRow}`;
             // leave currentRow[4*i + 3] and [4*i + 4] null
           }
           return currentRow;
@@ -1308,9 +1315,9 @@
             dotChartP = true;
           }
           $.extend(seriesOptions, {
-            pointSize: hasImage ? 1 : toFixnum(get(p, 'point-size')),
+            pointSize: (hasImage || dotChartP) ? 0.1 : toFixnum(get(p, 'point-size')),
             lineWidth: 0,
-            dataOpacity: hasImage ? 0 : 1,
+            dataOpacity: (hasImage || dotChartP) ? 0 : 1,
           });
         } else if (i - scatters.length < lines.length) {
           $.extend(seriesOptions, {
@@ -1427,6 +1434,7 @@
       options['vAxis'] = {
         ticks: [],
         minValue: 0,
+        maxValue: 10,
       }
     }
 
@@ -1621,8 +1629,8 @@
             // console.log('circles=', circles);
             const numCircles = circles.length;
             const circle0 = circles[0];
-            // const circleR = toFixnum(get(combined[0], 'point-size'));
-            const circleR = Number(circle0.getAttribute('r'));
+            const circleR = toFixnum(get(combined[0], 'point-size'));
+            // const circleR = Number(circle0.getAttribute('r'));
             const offsetQuantum = 2 * circleR;
             let prevDotArray = [];
             function tooClose(x, y) {
@@ -1635,7 +1643,7 @@
             circles.forEach((circle) => {
               // console.log('updating circle', i);
               const circleX = Number(circle.getAttribute('cx'));
-              let circleY = Number(circle.getAttribute('cy')) - 0.5*offsetQuantum;
+              let circleY = Number(circle.getAttribute('cy')) - 1.2*circleR;
               while (tooClose(circleX, circleY)) {
                 circleY -= offsetQuantum;
               }
@@ -1648,7 +1656,6 @@
               circleElt.setAttribute('r', circleR);
               circleElt.setAttribute('fill-opacity', 1);
               Object.assign(circleElt, circle); // we should probably not steal *everything*...
-              circle.remove();
               svgRoot.appendChild(circleElt);
             });
           }
