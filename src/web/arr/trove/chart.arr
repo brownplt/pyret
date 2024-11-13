@@ -1058,6 +1058,7 @@ type BarChartSeries = {
   annotations :: RawArray<RawArray<Option<String>>>,
   intervals :: RawArray<RawArray<RawArray<Number>>>,
   default-interval-color :: Option<I.Color>
+  dot-chart :: Boolean,
 }
 
 default-bar-chart-series = {
@@ -1067,8 +1068,8 @@ default-bar-chart-series = {
   pointer-color: none,
   axisdata: none, 
   horizontal: false, 
-  dot-chart: false,
   default-interval-color: none
+  dot-chart: false,
 }
 
 type MultiBarChartSeries = { 
@@ -1163,6 +1164,7 @@ type ScatterPlotSeries = {
   pointshapeSides :: NumInteger, 
   pointshapeDent :: Number, 
   pointshapeRotation :: Number,
+  dot-chart :: Boolean,
 }
 
 default-scatter-plot-series = {
@@ -1193,9 +1195,6 @@ type IntervalChartSeries = {
   style :: String,
   horizontal :: Boolean,
   default-interval-color :: Option<I.Color>,
-  #
-  bothys :: List<Posn>,
-  ps :: List<Posn>,
   legend :: String,
   trendlineType :: Option<String>,
   trendlineColor :: Option<I.Color>,
@@ -1209,6 +1208,9 @@ type IntervalChartSeries = {
   pointshapeSides :: NumInteger,
   pointshapeDent :: Number,
   pointshapeRotation :: Number,
+  bothys :: List<Posn>,
+  ps :: List<Posn>,
+  dot-chart :: Boolean,
 }
 
 default-interval-chart-series = {
@@ -1232,6 +1234,7 @@ default-interval-chart-series = {
   pointshapeSides: 5,
   pointshapeDent: 0.5,
   pointshapeRotation: 0,
+  dot-chart: false,
 }
 
 type FunctionPlotSeries = {
