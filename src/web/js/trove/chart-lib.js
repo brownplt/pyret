@@ -1428,6 +1428,7 @@ ${labelRow}`;
     }
 
     if (dotChartP) {
+      // dot charts don't need horiz grid or anything below the x axis
       options['vAxis'] = {
         ticks: [],
         minValue: 0,
