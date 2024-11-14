@@ -1057,7 +1057,7 @@ type BarChartSeries = {
   horizontal :: Boolean,
   annotations :: RawArray<RawArray<Option<String>>>,
   intervals :: RawArray<RawArray<RawArray<Number>>>,
-  default-interval-color :: Option<I.Color>
+  default-interval-color :: Option<I.Color>,
   dot-chart :: Boolean,
 }
 
@@ -1068,7 +1068,7 @@ default-bar-chart-series = {
   pointer-color: none,
   axisdata: none, 
   horizontal: false, 
-  default-interval-color: none
+  default-interval-color: none,
   dot-chart: false,
 }
 

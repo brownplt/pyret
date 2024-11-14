@@ -1293,7 +1293,8 @@ ${labelRow}`;
 
     // ASSERT: if we're using custom images, *every* series will have idx 3 defined
     const hasImage = combined.every(p => get(p, 'ps').filter(p => p[3]).length > 0);
-    let dotChartP = false;
+    const dotChartP = combined.some(p => get(p, 'dot-chart'));
+    const replaceDefaultSVG = (hasImage || dotChartP);
 
     const options = {
       tooltip: {isHtml: true},
@@ -1310,14 +1311,10 @@ ${labelRow}`;
         });
         // If we have our own image, make the point small and transparent
         if (i < scatters.length) {
-          if (get(p, 'dot-chart')) {
-            // console.log('dot chart scatter plot found');
-            dotChartP = true;
-          }
           $.extend(seriesOptions, {
-            pointSize: (hasImage || dotChartP) ? 0.1 : toFixnum(get(p, 'point-size')),
+            pointSize: replaceDefaultSVG ? 0.1 : toFixnum(get(p, 'point-size')),
             lineWidth: 0,
-            dataOpacity: (hasImage || dotChartP) ? 0 : 1,
+            dataOpacity: replaceDefaultSVG ? 0 : 1,
           });
         } else if (i - scatters.length < lines.length) {
           $.extend(seriesOptions, {
@@ -1576,7 +1573,7 @@ ${labelRow}`;
             .append(redrawG);
         }
 
-        if(!hasImage && !dotChartP) { return; } // If we don't have images, our work is done!
+        if (!replaceDefaultSVG) { return; } // If we don't have images, our work is done!
         
         // if custom images are defined, use the image at that location
         // and overlay it atop each dot
@@ -1591,13 +1588,13 @@ ${labelRow}`;
           // This is brittle and needs to be revisited
           const svgRoot = chart.container.querySelector('svg');
           // const markers = svgRoot.children[3].children[2].children; from sbcContinuation
-          if (hasImage) {
           let markers;
           if(legendEnabled) {
             markers = svgRoot.children[2].children[2].children;
           } else {
             markers = svgRoot.children[1].children[2].children;
           }
+          if (hasImage) {
 
           const layout = chart.getChartLayoutInterface();
           // remove any labels that have previously been drawn
@@ -1625,7 +1622,7 @@ ${labelRow}`;
           }
 
           if (dotChartP) {
-            const circles = [...svgRoot.children[1].children[2].getElementsByTagName('circle')];
+            const circles = [...markers].filter(m => m.nodeName == 'circle');
             // console.log('circles=', circles);
             const numCircles = circles.length;
             const circle0 = circles[0];
