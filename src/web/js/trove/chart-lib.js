@@ -1428,7 +1428,10 @@ ${labelRow}`;
     }
 
     if (dotChartP) {
-      // dot charts don't need horiz grid or anything below the x axis
+      // ticks [] as we don't want horizontal grid lines;
+      // maxValue must be set to something as otherwise having
+      // all dots at y=0 causes vAxis to be centered at 0;
+      // we don't want any chart real estate below x-axis
       options['vAxis'] = {
         ticks: [],
         minValue: 0,
