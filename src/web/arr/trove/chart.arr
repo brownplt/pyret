@@ -1057,7 +1057,8 @@ type BarChartSeries = {
   horizontal :: Boolean,
   annotations :: RawArray<RawArray<Option<String>>>,
   intervals :: RawArray<RawArray<RawArray<Number>>>,
-  default-interval-color :: Option<I.Color>
+  default-interval-color :: Option<I.Color>,
+  dot-chart :: Boolean,
 }
 
 default-bar-chart-series = {
@@ -1067,8 +1068,8 @@ default-bar-chart-series = {
   pointer-color: none,
   axisdata: none, 
   horizontal: false, 
+  default-interval-color: none,
   dot-chart: false,
-  default-interval-color: none
 }
 
 type MultiBarChartSeries = { 
@@ -1163,6 +1164,7 @@ type ScatterPlotSeries = {
   pointshapeSides :: NumInteger, 
   pointshapeDent :: Number, 
   pointshapeRotation :: Number,
+  dot-chart :: Boolean,
 }
 
 default-scatter-plot-series = {
@@ -1178,6 +1180,7 @@ default-scatter-plot-series = {
   trendlineWidth: 3, 
   trendlineOpacity: 0.3,
   trendlineDegree: 3,  
+  dot-chart: false
 }
 
 type IntervalChartSeries = {
@@ -1192,9 +1195,6 @@ type IntervalChartSeries = {
   style :: String,
   horizontal :: Boolean,
   default-interval-color :: Option<I.Color>,
-  #
-  bothys :: List<Posn>,
-  ps :: List<Posn>,
   legend :: String,
   trendlineType :: Option<String>,
   trendlineColor :: Option<I.Color>,
@@ -1208,6 +1208,9 @@ type IntervalChartSeries = {
   pointshapeSides :: NumInteger,
   pointshapeDent :: Number,
   pointshapeRotation :: Number,
+  bothys :: List<Posn>,
+  ps :: List<Posn>,
+  dot-chart :: Boolean,
 }
 
 default-interval-chart-series = {
@@ -1231,6 +1234,7 @@ default-interval-chart-series = {
   pointshapeSides: 5,
   pointshapeDent: 0.5,
   pointshapeRotation: 0,
+  dot-chart: false,
 }
 
 type FunctionPlotSeries = {
@@ -1918,73 +1922,22 @@ fun bar-chart-from-list(labels :: P.LoS, values :: P.LoN) -> DataSeries block:
   data-series.make-axis(max-positive-height, max-negative-height)
 end
 
-fun num-dot-chart-no-bin(x-values :: P.LoN, y-values :: P.LoN,
-      min-x-value :: Number, max-x-value :: Number):
-  num-dot-chart-args = map2(lam(x-value, y-value): [list: x-value, y-value] end,
-                            x-values, y-values)
-    .append(range(min-x-value, max-x-value)
-      .filter(lam(x-value): not(member(x-values, x-value)) end)
-      .map(lam(x-value): [list: x-value, 0] end))
-    .sort-by({(x1y1, x2y2): x1y1.get(0) < x2y2.get(0)},
-             {(x1y1, x2y2): x1y1.get(0) == x2y2.get(0)})
-  dot-chart-from-list(map(lam(x1y1): num-to-string(x1y1.get(0)) end,
-                          num-dot-chart-args),
-                      map(lam(x1y1): x1y1.get(1) end, num-dot-chart-args))
-end
-
-fun num-dot-chart-bin(labels :: P.LoN, values :: P.LoN,
-      min-x-value :: Number, max-x-value :: Number) block:
-  labels-length = labels.length()
-  median-index = labels-length / 2
-  sorted-labels = labels.sort()
-  sorted-labels-split = sorted-labels.split-at(num-floor(median-index))
-  sorted-labels-1st-half = sorted-labels.split-at(num-floor(median-index)).prefix
-  sorted-labels-2nd-half = sorted-labels.split-at(num-ceiling(median-index)).suffix
-  sorted-labels-iqr = ST.median(sorted-labels-2nd-half) -
-                        ST.median(sorted-labels-1st-half)
-  dot-chart-bin-width-1 = ((2 * sorted-labels-iqr) /
-                            num-expt(labels-length, 1/3))
-  dot-chart-bin-width = if dot-chart-bin-width-1 > 1:
-      num-round-even(dot-chart-bin-width-1) else: dot-chart-bin-width-1 end
-  left-most-x-1 = min-x-value - (dot-chart-bin-width / 2)
-  left-most-x = if dot-chart-bin-width > 0.5: num-floor(left-most-x-1) else:
-                      left-most-x-1 end
-  num-bins = num-ceiling((max-x-value - left-most-x) / dot-chart-bin-width)
-  num-dot-chart-args = for map(range-iter from range(0, num-bins)):
-    [raw-array: num-to-string-digits(left-most-x +
-      (range-iter * dot-chart-bin-width), 2), 0]
-    end
-  for each2(x-value from labels, y-value from values):
-    x-index = num-min(num-floor((x-value - left-most-x) / dot-chart-bin-width),
-                      num-bins - 1)
-    this-ra = num-dot-chart-args.get(x-index)
-    raw-array-set(this-ra, 1, raw-array-get(this-ra, 1) + y-value)
-  end
-  dot-chart-from-list(map(lam(x1y1): raw-array-get(x1y1, 0) end, num-dot-chart-args),
-                      map(lam(x1y1): raw-array-get(x1y1, 1) end, num-dot-chart-args))
-end
-
-fun num-dot-chart-from-list(labels :: P.LoN, values :: P.LoN) -> DataSeries block:
+fun num-dot-chart-from-list(x-values :: P.LoN) -> DataSeries block:
   doc: ```
-       Consume labels, a list of numbers, and values, a list of numbers
+       Consume a (possibly repeating, unordered) list of numbers
        and construct a dot chart
        ```
-  labels.each(check-num)
-  labels-length = labels.length()
-  when labels-length == 0:
+  x-values.each(check-num)
+  when x-values.length() == 0:
     raise("num-dot-chart: can't have empty data")
   end
-  when labels-length <> values.length():
-    raise("num-dot-chart: labels and values should have the same length")
-  end
-  any-x-value = labels.get(0)
-  min-x-value = fold(num-min, any-x-value, labels)
-  max-x-value = fold(num-max, any-x-value, labels)
-  if (not(all(num-is-integer, labels)) or ((max-x-value - min-x-value) > 15)): 
-    num-dot-chart-bin(labels, values, min-x-value, max-x-value)
-  else:
-    num-dot-chart-no-bin(labels, values, min-x-value, max-x-value)
-  end
+  scatter-plot-ys = x-values.map(lam(_): 0 end)
+  default-scatter-plot-series.{
+    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]},
+      x-values, scatter-plot-ys,
+      x-values.map({(_): ''}), x-values.map({(_): false})),
+    dot-chart: true
+  } ^ scatter-plot-series
 end
 
 fun dot-chart-from-list(labels :: P.LoS, values :: P.LoN) -> DataSeries block:

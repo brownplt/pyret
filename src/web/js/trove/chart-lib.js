@@ -1241,6 +1241,7 @@
 
       const rowTemplate = new Array(combined.length * 4 + 1).fill(null);
       const intervalP = (i >= minIntervalIndex);
+      const dotChartP = Boolean(get(p, 'dot-chart'));
       if (!intervalP) {
         data.addRows(get(p, 'ps').map(row => {
           const currentRow = rowTemplate.slice();
@@ -1253,10 +1254,16 @@
             } else {
               labelRow = '';
             }
+            let labelRowY = null;
+            if (dotChartP) {
+              labelRowY = '';
+            } else {
+              labelRowY = `<p>y: <b>${currentRow[4*i + 1]}</b></p>`;
+            }
             currentRow[4*i + 2] = `<p>${legends[i]}</p>
 <p>x: <b>${currentRow[0]}</b></p>
-<p>y: <b>${currentRow[4*i + 1]}</b></p>
-              ${labelRow}`;
+${labelRowY}
+${labelRow}`;
             // leave currentRow[4*i + 3] and [4*i + 4] null
           }
           return currentRow;
@@ -1286,6 +1293,8 @@
 
     // ASSERT: if we're using custom images, *every* series will have idx 3 defined
     const hasImage = combined.every(p => get(p, 'ps').filter(p => p[3]).length > 0);
+    const dotChartP = combined.some(p => get(p, 'dot-chart'));
+    const replaceDefaultSVG = (hasImage || dotChartP);
 
     const options = {
       tooltip: {isHtml: true},
@@ -1303,9 +1312,9 @@
         // If we have our own image, make the point small and transparent
         if (i < scatters.length) {
           $.extend(seriesOptions, {
-            pointSize: hasImage ? 1 : toFixnum(get(p, 'point-size')),
+            pointSize: replaceDefaultSVG ? 0.1 : toFixnum(get(p, 'point-size')),
             lineWidth: 0,
-            dataOpacity: hasImage ? 0 : 1,
+            dataOpacity: replaceDefaultSVG ? 0 : 1,
           });
         } else if (i - scatters.length < lines.length) {
           $.extend(seriesOptions, {
@@ -1416,6 +1425,18 @@
     }
     if (trendlineType == "polynomial") {
       options['trendlines'][0]['degree'] = trendlineDegree;
+    }
+
+    if (dotChartP) {
+      // ticks [] as we don't want horizontal grid lines;
+      // maxValue must be set to something as otherwise having
+      // all dots at y=0 causes vAxis to be centered at 0;
+      // we don't want any chart real estate below x-axis
+      options['vAxis'] = {
+        ticks: [],
+        minValue: 0,
+        maxValue: 10,
+      }
     }
 
     const pointshapeType = get(ser0, 'pointshapeType');
@@ -1556,7 +1577,7 @@
             .append(redrawG);
         }
 
-        if(!hasImage) { return; } // If we don't have images, our work is done!
+        if (!replaceDefaultSVG) { return; } // If we don't have images, our work is done!
         
         // if custom images are defined, use the image at that location
         // and overlay it atop each dot
@@ -1577,6 +1598,7 @@
           } else {
             markers = svgRoot.children[1].children[2].children;
           }
+          if (hasImage) {
 
           const layout = chart.getChartLayoutInterface();
           // remove any labels that have previously been drawn
@@ -1601,6 +1623,43 @@
               svgRoot.appendChild(imageElt);
             });
           });
+          }
+
+          if (dotChartP) {
+            const circles = [...markers].filter(m => m.nodeName == 'circle');
+            // console.log('circles=', circles);
+            const numCircles = circles.length;
+            const circle0 = circles[0];
+            const circleR = toFixnum(get(combined[0], 'point-size'));
+            // const circleR = Number(circle0.getAttribute('r'));
+            const offsetQuantum = 2 * circleR;
+            let prevDotArray = [];
+            function tooClose(x, y) {
+              return prevDotArray.some(function(n) {
+                return ((Math.abs(x - n[0]) < offsetQuantum) &&
+                  (Math.abs(y - n[1]) < offsetQuantum));
+              });
+            }
+
+            circles.forEach((circle) => {
+              // console.log('updating circle', i);
+              const circleX = Number(circle.getAttribute('cx'));
+              let circleY = Number(circle.getAttribute('cy')) - 1.2*circleR;
+              while (tooClose(circleX, circleY)) {
+                circleY -= offsetQuantum;
+              }
+
+              prevDotArray.push([circleX, circleY]);
+
+              const circleElt = circle.cloneNode(false);
+              circleElt.classList.add('__img_labels'); // tag for later gc
+              circleElt.setAttribute('cy', circleY);
+              circleElt.setAttribute('r', circleR);
+              circleElt.setAttribute('fill-opacity', 1);
+              Object.assign(circleElt, circle); // we should probably not steal *everything*...
+              svgRoot.appendChild(circleElt);
+            });
+          }
         });
       },
     };
