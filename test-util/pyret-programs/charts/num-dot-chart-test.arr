@@ -22,8 +22,9 @@ more-colors = [list: C.red, C.green, C.blue, C.orange, C.purple, C.yellow, C.ind
 
 fun render-image(series):
   # render-chart(series).get-image()
-  render-chart(series)
+  render-chart(series).get-image()
 end
+
 
 # x-values = [list: 1, 2, 3, 4, 5, 6, 8, 9, 10, 24, 30]
 # freqs    = [list: 5, 3, 6, 4, 3, 3, 3, 2,  1,  1,  1]
@@ -54,5 +55,12 @@ r1-zoo = render-image(r1-zoo-series)
 r2-zoo-series = from-list.num-dot-chart(r2-x-values)
 r2-zoo = render-image(r2-zoo-series)
 
-fun t1(): r1-zoo.display() end
-fun t2(): r2-zoo.display() end
+# fun t1(): render-chart(r1-zoo-series).display() end
+# fun t2(): render-chart(r2-zoo-series).display() end
+
+# check colors of selected pixel as for the other charts
+
+check "Dot chart, numerical data":
+  r1-zoo satisfies is-image
+  r2-zoo satisfies is-image
+end

@@ -1129,6 +1129,7 @@ type LinePlotSeries = {
   pointshapeSides :: NumInteger, 
   pointshapeDent :: Number, 
   pointshapeRotation :: Number,
+  dot-chart :: Boolean,
 }
 
 default-line-plot-series = {
@@ -1148,6 +1149,7 @@ default-line-plot-series = {
   pointshapeSides: 5,
   pointshapeDent: 0.5,
   pointshapeRotation: 0,
+  dot-chart: false,
 }
 
 type ScatterPlotSeries = {

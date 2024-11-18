@@ -45,41 +45,4 @@ check "Dot chart, categorical data":
   color-at-position(zoo-rainbow, 558, 340) is C.green
 end
 
-nlabels = [list: 2, 6, 3, 1]
-n-zoo-series = from-list.num-dot-chart(nlabels, count)
 
-n-zoo = render-image(n-zoo-series)
-n-zoo-red = render-image(n-zoo-series.colors(just-red))
-n-zoo-rainbow = render-image(n-zoo-series.colors(rainbow-colors))
-n-zoo-manual = render-image(n-zoo-series.colors(manual-colors))
-n-zoo-fewer = render-image(n-zoo-series.colors(fewer-colors))
-n-zoo-more = render-image(n-zoo-series.colors(more-colors))
-
-check "Dot chart, numerical data":
-  n-zoo satisfies is-image
-  n-zoo-red satisfies is-image
-  n-zoo-rainbow satisfies is-image
-  n-zoo-manual satisfies is-image
-  n-zoo-fewer satisfies is-image
-  n-zoo-more satisfies is-image
-end
-
-# r-x-values = [list: 1, 2, 3, 4, 5, 6, 8, 9, 10, 24, 30]
-# r-y-values = [list: 5, 3, 6, 4, 3, 3, 3, 2,  1,  1,  1]
-# r-zoo-series = from-list.num-dot-chart(r-x-values, r-y-values)
-#
-# r-zoo = render-image(r-zoo-series)
-# r-zoo-red = render-image(r-zoo-series.colors(just-red))
-# r-zoo-rainbow = render-image(r-zoo-series.colors(rainbow-colors))
-# r-zoo-manual = render-image(r-zoo-series.colors(manual-colors))
-# r-zoo-fewer = render-image(r-zoo-series.colors(fewer-colors))
-# r-zoo-more = render-image(r-zoo-series.colors(more-colors))
-#
-# check "Binned dot chart":
-#   r-zoo satisfies is-image
-#   r-zoo-red satisfies is-image
-#   r-zoo-rainbow satisfies is-image
-#   r-zoo-manual satisfies is-image
-#   r-zoo-fewer satisfies is-image
-#   r-zoo-more satisfies is-image
-# end
