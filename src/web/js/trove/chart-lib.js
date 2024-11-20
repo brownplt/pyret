@@ -1242,7 +1242,8 @@
       const rowTemplate = new Array(combined.length * 4 + 1).fill(null);
       const intervalP = (i >= minIntervalIndex);
       const dotChartP = Boolean(get(p, 'dot-chart'));
-      if (!intervalP) {
+
+      if(dotChartP) {
         data.addRows(get(p, 'ps').map(row => {
           const currentRow = rowTemplate.slice();
           if (row.length != 0) {
@@ -1254,21 +1255,13 @@
             } else {
               labelRow = '';
             }
-            let labelRowY = null;
-            if (dotChartP) {
-              labelRowY = '';
-            } else {
-              labelRowY = `<p>y: <b>${currentRow[4*i + 1]}</b></p>`;
-            }
             currentRow[4*i + 2] = `<p>${legends[i]}</p>
 <p>x: <b>${currentRow[0]}</b></p>
-${labelRowY}
 ${labelRow}`;
-            // leave currentRow[4*i + 3] and [4*i + 4] null
           }
           return currentRow;
         }));
-      } else { // i.e., interval chart
+      } else if(intervalP) {
         data.addRows(get(p, 'tab').map(row => {
           const currentRow = rowTemplate.slice();
           if (row.length != 0) {
@@ -1288,7 +1281,27 @@ ${labelRow}`;
           }
           return currentRow;
         }));
-      };
+      } else {
+        data.addRows(get(p, 'ps').map(row => {
+          const currentRow = rowTemplate.slice();
+          if (row.length != 0) {
+            currentRow[0] = toFixnum(row[0]);
+            currentRow[4*i + 1] = toFixnum(row[1]);
+            let labelRow = null;
+            if (row.length >= 3 && row[2] !== '') {
+              labelRow = `<p>label: <b>${row[2]}</b></p>`;
+            } else {
+              labelRow = '';
+            }
+            currentRow[4*i + 2] = `<p>${legends[i]}</p>
+<p>x: <b>${currentRow[0]}</b></p>
+<p>y: <b>${currentRow[4*i + 1]}</b></p>
+${labelRow}`;
+            // leave currentRow[4*i + 3] and [4*i + 4] null
+          }
+          return currentRow;
+        }));
+      }
     });
 
     // ASSERT: if we're using custom images, *every* series will have idx 3 defined
@@ -1458,7 +1471,7 @@ ${labelRow}`;
       $.extend(options, {
         chartArea: {
           left: '12%',
-          width: '56%',
+          width: dotChartP? '76%' : '56%',
         }
       });
     }
@@ -1483,98 +1496,100 @@ ${labelRow}`;
                  backgroundMutator, 
                  selectMultipleMutator],
       overlay: (overlay, restarter, chart, container) => {
+        if(!dotChartP) {
         overlay.css({
           width: '30%',
           position: 'absolute',
           right: '0px',
           top: '50%',
-          transform: 'translateY(-50%)',
-        });
+            transform: 'translateY(-50%)',
+          });
 
-        const controller = $('<div/>');
+          const controller = $('<div/>');
 
-        overlay.append(controller);
+          overlay.append(controller);
 
-        const inputSize = 16;
+          const inputSize = 16;
 
-        const xMinC = $('<input/>', {
-          'class': 'controller',
-          type: 'text',
-          placeholder: 'x-min',
-        }).attr('size', inputSize);
-        const xMaxC = $('<input/>', {
-          'class': 'controller',
-          type: 'text',
-          placeholder: 'x-max',
-        }).attr('size', inputSize);
-        const yMinC = $('<input/>', {
-          'class': 'controller',
-          type: 'text',
-          placeholder: 'y-min',
-        }).attr('size', inputSize);
-        const yMaxC = $('<input/>', {
-          'class': 'controller',
-          type: 'text',
-          placeholder: 'y-max',
-        }).attr('size', inputSize);
-        const numSamplesC = $('<input/>', {
-          'class': 'controller',
-          type: 'text',
-          placeholder: '#samples',
-        }).attr('size', inputSize).val('2');
-        // dummy value so that a new window can be constructed correctly
-        // when numSamplesC is not used. The value must be at least 2
+          const xMinC = $('<input/>', {
+            'class': 'controller',
+            type: 'text',
+            placeholder: 'x-min',
+          }).attr('size', inputSize);
+          const xMaxC = $('<input/>', {
+            'class': 'controller',
+            type: 'text',
+            placeholder: 'x-max',
+          }).attr('size', inputSize);
+          const yMinC = $('<input/>', {
+            'class': 'controller',
+            type: 'text',
+            placeholder: 'y-min',
+          }).attr('size', inputSize);
+          const yMaxC = $('<input/>', {
+            'class': 'controller',
+            type: 'text',
+            placeholder: 'y-max',
+          }).attr('size', inputSize);
+          const numSamplesC = $('<input/>', {
+            'class': 'controller',
+            type: 'text',
+            placeholder: '#samples',
+          }).attr('size', inputSize).val('2');
+          // dummy value so that a new window can be constructed correctly
+          // when numSamplesC is not used. The value must be at least 2
 
-        const redrawC = $('<button/>', {
-          'class': 'controller',
-          text: 'Redraw',
-        }).click(() => {
-          const newWindow = getNewWindow(xMinC, xMaxC, yMinC, yMaxC, numSamplesC);
-          if (newWindow === null) return;
-          const toRet = RUNTIME.ffi.makeLeft(
-            RUNTIME.extendObj(
-              RUNTIME.makeSrcloc('dummy location'),
-              globalOptions,
-              newWindow
-            )
-          );
-          RUNTIME.getParam('remove-chart-port')();
-          restarter.resume(toRet);
-        });
+          const redrawC = $('<button/>', {
+            'class': 'controller',
+            text: 'Redraw',
+          }).click(() => {
+            const newWindow = getNewWindow(xMinC, xMaxC, yMinC, yMaxC, numSamplesC);
+            if (newWindow === null) return;
+            const toRet = RUNTIME.ffi.makeLeft(
+              RUNTIME.extendObj(
+                RUNTIME.makeSrcloc('dummy location'),
+                globalOptions,
+                newWindow
+              )
+            );
+            RUNTIME.getParam('remove-chart-port')();
+            restarter.resume(toRet);
+          });
 
-        function getBoundControl(control, name) {
-          control.val(prettyNumToStringDigits5(
-            get(get(globalOptions, name), 'value')));
-          return $('<p/>')
-           .append($('<label/>', {'class': 'controller', text: name + ': '}))
-           .append(control);
-        }
+          function getBoundControl(control, name) {
+            control.val(prettyNumToStringDigits5(
+              get(get(globalOptions, name), 'value')));
+            return $('<p/>')
+             .append($('<label/>', {'class': 'controller', text: name + ': '}))
+             .append(control);
+          }
 
-        const xMinG = getBoundControl(xMinC, 'x-min');
-        const xMaxG = getBoundControl(xMaxC, 'x-max');
-        const yMinG = getBoundControl(yMinC, 'y-min');
-        const yMaxG = getBoundControl(yMaxC, 'y-max');
-        const redrawG = $('<p/>').append(redrawC);
+          const xMinG = getBoundControl(xMinC, 'x-min');
+          const xMaxG = getBoundControl(xMaxC, 'x-max');
+          const yMinG = getBoundControl(yMinC, 'y-min');
+          const yMaxG = getBoundControl(yMaxC, 'y-max');
+          const redrawG = $('<p/>').append(redrawC);
 
-        if (isTrue(get(globalOptions, 'is-show-samples'))) {
-          numSamplesC.val(RUNTIME.num_to_string(get(globalOptions, 'num-samples')));
-          const numSamplesG = $('<p/>')
-            .append($('<label/>', {'class': 'controller', text: '#samples: '}))
-            .append(numSamplesC);
-          controller
-            .append(xMinG)
-            .append(xMaxG)
-            .append(yMinG)
-            .append(yMaxG)
-            .append(numSamplesG)
-            .append(redrawG);
-        } else {
-          controller
-            .append(xMinG)
-            .append(xMaxG)
-            .append(yMinG)
-            .append(yMaxG)
-            .append(redrawG);
+          if (isTrue(get(globalOptions, 'is-show-samples'))) {
+            numSamplesC.val(RUNTIME.num_to_string(get(globalOptions, 'num-samples')));
+            const numSamplesG = $('<p/>')
+              .append($('<label/>', {'class': 'controller', text: '#samples: '}))
+              .append(numSamplesC);
+            controller
+              .append(xMinG)
+              .append(xMaxG)
+              .append(yMinG)
+              .append(yMaxG)
+              .append(numSamplesG)
+              .append(redrawG);
+          } else {
+            controller
+              .append(xMinG)
+              .append(xMaxG)
+              .append(yMinG)
+              .append(yMaxG)
+              .append(redrawG);
+          }
         }
 
         if (!replaceDefaultSVG) { return; } // If we don't have images, our work is done!
@@ -1630,7 +1645,7 @@ ${labelRow}`;
             // console.log('circles=', circles);
             const numCircles = circles.length;
             const circle0 = circles[0];
-            const circleR = toFixnum(get(combined[0], 'point-size'));
+            const circleR = toFixnum(get(combined[0], 'point-size')) + 1;
             // const circleR = Number(circle0.getAttribute('r'));
             const offsetQuantum = 2 * circleR;
             let prevDotArray = [];
@@ -1644,7 +1659,7 @@ ${labelRow}`;
             circles.forEach((circle) => {
               // console.log('updating circle', i);
               const circleX = Number(circle.getAttribute('cx'));
-              let circleY = Number(circle.getAttribute('cy')) - 1.2*circleR;
+              let circleY = Number(circle.getAttribute('cy')) - (1.1 * circleR);
               while (tooClose(circleX, circleY)) {
                 circleY -= offsetQuantum;
               }
