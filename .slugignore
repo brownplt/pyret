@@ -1,4 +1,2 @@
 node_modules/
-.heroku/
-.awscli/
 src/web/
