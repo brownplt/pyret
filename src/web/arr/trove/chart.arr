@@ -1942,6 +1942,28 @@ fun num-dot-chart-from-list(x-values :: P.LoN) -> DataSeries block:
   } ^ scatter-plot-series
 end
 
+fun labeled-num-dot-chart-from-list(labels :: P.LoS, x-values :: P.LoN) -> DataSeries block:
+  doc: ```
+       Consume unordered, possibly-repeating lists of labels and numbers, 
+       and construct a dot chart
+       ```
+  x-values.each(check-num)
+  when x-values.length() == 0:
+    raise("num-dot-chart: can't have empty data")
+  end
+  labels.each(check-string)
+  when labels.length() <> x-values.length():
+    raise("num-dot-chart: the lists of numbers and labels must have the same length")
+  end
+  scatter-plot-ys = x-values.map(lam(_): 0 end)
+  default-scatter-plot-series.{
+    ps: map4({(x, y, z, img): [raw-array: x, y, z, img]},
+      x-values, scatter-plot-ys, labels,
+      x-values.map({(_): false})),
+    dot-chart: true
+  } ^ scatter-plot-series
+end
+
 fun dot-chart-from-list(labels :: P.LoS, values :: P.LoN) -> DataSeries block:
   doc: ```
        Consume labels, a list of string, and values, a list of numbers
@@ -2676,6 +2698,7 @@ from-list = {
   bar-chart: bar-chart-from-list,
   dot-chart: dot-chart-from-list,
   num-dot-chart: num-dot-chart-from-list,
+  labeled-num-dot-chart: labeled-num-dot-chart-from-list,
   image-bar-chart: image-bar-chart-from-list,
   grouped-bar-chart: grouped-bar-chart-from-list,
   stacked-bar-chart: stacked-bar-chart-from-list,
