@@ -1440,15 +1440,60 @@ ${labelRow}`;
       options['trendlines'][0]['degree'] = trendlineDegree;
     }
 
+    // by default, dotPlotAxesMutator does nothing
+    let dotPlotAxesMutator = (options, globalOptions, _) => {return false};
     if (dotChartP) {
-      // ticks [] as we don't want horizontal grid lines;
-      // maxValue must be set to something as otherwise having
-      // all dots at y=0 causes vAxis to be centered at 0;
-      // we don't want any chart real estate below x-axis
-      options['vAxis'] = {
-        ticks: [],
-        minValue: 0,
-        maxValue: 10,
+      // for the hAxis, we need to custom-calculate the tick marks
+      // copied from erison.blogspot.com/2011/07/algorithm-for-optimal-scaling-on-chart.html
+      dotPlotAxesMutator = (options, globalOptions, _) => {
+      const xValues = combined.map(p => get(p, 'ps').map(r => toFixnum(r[0]))).flat();
+      const xMin = Math.min(...xValues);
+      const xMax = Math.max(...xValues);
+      const maxTicks = 8;
+
+      function niceNum(range, round) {
+        const exponent = Math.floor(Math.log10(range));
+        const fraction = range / Math.pow(10, exponent);
+        let niceFraction;
+
+        if (round) {
+          if(fraction < 1.5)     niceFraction =  1;
+          else if(fraction < 3)  niceFraction =  2;
+          else if(fraction < 7)  niceFraction =  5;
+          else                   niceFraction = 10;
+        } else {
+          if (fraction <= 1)     niceFraction =  1;
+          else if(fraction <= 2) niceFraction =  2;
+          else if(fraction <= 5) niceFraction =  5;
+          else                   niceFraction = 10;
+        }
+
+        return niceFraction * Math.pow(10, exponent);
+      }
+
+      const range       = niceNum(xMax - xMin, false);
+      const tickSpacing = niceNum(range / (maxTicks - 1), true);
+      let niceMin     = Math.floor(xMin / tickSpacing) * tickSpacing;
+      let niceMax     = Math.ceil(xMax / tickSpacing) * tickSpacing;
+      // add an extra tick if the data falls exactly on the boundaries
+      if(xMin == niceMin) niceMin = niceMin - tickSpacing;
+      if(xMax == niceMax) niceMax = niceMax + tickSpacing;      let hTicks        = [niceMin]; // start at the bottom and add
+      while(hTicks.slice(-1) < niceMax) { hTicks.push(Number(hTicks.slice(-1)) + tickSpacing); }
+
+      //console.log('niceMin', niceMin, 'niceMax', niceMax, 'tickSpacing', tickSpacing, 'ticks', hTicks);
+
+        // ticks [] as we don't want horizontal grid lines;
+        // maxValue must be set to something as otherwise having
+        // all dots at y=0 causes vAxis to be centered at 0;
+        // we don't want any chart real estate below x-axis
+        options['vAxis'] = {
+          ...options['vAxis'],
+          ...{ticks: [], viewWindow: {min: 0, max: 10}}
+        };
+        options['hAxis'] = {
+          ...options['hAxis'],
+          ...{viewWindow: {min: niceMin, max: niceMax}}
+        };
       }
     }
 
@@ -1494,7 +1539,8 @@ ${labelRow}`;
                  xAxisRangeMutator,
                  gridlinesMutator,
                  backgroundMutator, 
-                 selectMultipleMutator],
+                 selectMultipleMutator,
+                 dotPlotAxesMutator],
       overlay: (overlay, restarter, chart, container) => {
         if(!dotChartP) {
         overlay.css({
@@ -1657,11 +1703,18 @@ ${labelRow}`;
             }
 
             circles.forEach((circle) => {
-              // console.log('updating circle', i);
+              const graphBounds = svgRoot.children[1].children[0].getBoundingClientRect();
+              const graphTop = graphBounds.top - svgRoot.getBoundingClientRect().top;
               const circleX = Number(circle.getAttribute('cx'));
-              let circleY = Number(circle.getAttribute('cy')) - (1.1 * circleR);
+              let circleY = Number(circle.getAttribute('cy')) - 1.2*circleR;
               while (tooClose(circleX, circleY)) {
                 circleY -= offsetQuantum;
+              }
+
+              // if circleY goes above the top of the graph, place it randomly within
+              // the y-bounds
+              if(circleY < graphTop) {
+                circleY = (Math.random() * graphBounds.height) + graphTop;
               }
 
               prevDotArray.push([circleX, circleY]);
@@ -1670,10 +1723,13 @@ ${labelRow}`;
               circleElt.classList.add('__img_labels'); // tag for later gc
               circleElt.setAttribute('cy', circleY);
               circleElt.setAttribute('r', circleR);
-              circleElt.setAttribute('fill-opacity', 1);
+              circleElt.setAttribute('stroke', 'white');
+              circleElt.setAttribute('stroke-width', '1');
+              circleElt.setAttribute('fill-opacity', '0.5');
               Object.assign(circleElt, circle); // we should probably not steal *everything*...
               svgRoot.appendChild(circleElt);
             });
+
           }
         });
       },
