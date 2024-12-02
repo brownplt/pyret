@@ -1,4 +1,7 @@
-use context starter2024
+use context empty-context
+import essentials2024 as BASIC
+provide from BASIC: *, type *, data * end
+include from BASIC: *, type *, data * end
 ################################################################
 # CS111/DCIC Support functions
 # August 2024
@@ -10,7 +13,7 @@ use context starter2024
 include tables
 include chart 
 import statistics as S 
-import lists as L
+# import lists as L
 import sets as ST
 
 provide: 
@@ -91,7 +94,7 @@ end
 fun create-table-with-col(colname, colvals):
   base = table: dummy end
   mt-table = base.rename-column("dummy", colname) 
-  L.fold(lam(t, cval): t.add-row([raw-row: {colname ; cval}]) end,
+  fold(lam(t, cval): t.add-row([raw-row: {colname ; cval}]) end,
     mt-table, colvals)
 end
 
@@ -104,7 +107,7 @@ fun mean(  t, col): S.mean(t.column(col)) end
 fun median(t, col): S.median(t.column(col)) end
 fun modes( t, col): S.modes(t.column(col)) end
 fun stdev( t, col): S.stdev(t.column(col)) end
-fun sum(t, col): L.fold(lam(x,y): x + y end, 0, t.column(col)) end
+fun sum(t, col): fold(lam(x,y): x + y end, 0, t.column(col)) end
 
 # ----------- PLOTTING ------------------
 
@@ -162,13 +165,13 @@ end
 
 fun dot-plot(t, vs):
   xs = t.column(vs)
-  ys = L.repeat(xs.length(), 0)
+  ys = repeat(xs.length(), 0)
   render-chart(from-list.scatter-plot(xs, ys)).x-axis(vs).display()
 end
 
 fun labeled-dot-plot(t, ls, vs):
   xs = t.column(vs)
-  ys = L.repeat(xs.length(), 0)
+  ys = repeat(xs.length(), 0)
   render-chart(from-list.labeled-scatter-plot(t.column(ls).map(to-string), xs, ys)).x-axis(vs).display()
 end
 
