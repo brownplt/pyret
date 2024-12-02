@@ -700,6 +700,7 @@
 
     // ASSERT: if we're using custom images, there will be a 4th column
     const hasImage = table[0].length == 4;
+    const dotChartP = get(rawData, 'dot-chart');
 
     // Adds each row of bar data and bar_color data
     table.forEach(function (row) {
@@ -717,7 +718,7 @@
           color : interval_color, 
         },
         series : { 
-          0 : { dataOpacity : hasImage? 0 : 1.0 } 
+          0 : { dataOpacity : (hasImage || dotChartP)? 0 : 1.0 }
         }
       };
  
@@ -761,10 +762,13 @@
       onExit: defaultImageReturn,
       mutators: [backgroundMutator, axesNameMutator, yAxisRangeMutator],
       overlay: (overlay, restarter, chart, container) => {
-        if(!hasImage) return;
+
+        if (!hasImage && !dotChartP) return;
 
         // if custom images are defined, use the image at that location
         // and overlay it atop each dot
+
+
         google.visualization.events.addListener(chart, 'ready', function () {
           // HACK(Emmanuel): 
           // If Google changes the DOM for charts, these lines will likely break
@@ -772,6 +776,7 @@
           const rects = svgRoot.children[1].children[1].children[1].children;
           $('.__img_labels').each((idx, n) => $(n).remove());
 
+          if (hasImage) {
           // Render each rect above the old ones, using the image as a pattern
           table.forEach(function (row, i) {
             const rect = rects[i];
@@ -790,7 +795,42 @@
             Object.assign(imageElt, rects[i]); // we should probably not steal *everything*...
             svgRoot.appendChild(imageElt);
           });
+          }
+
+          if (dotChartP) {
+          table.forEach(function (row, i) {
+            // console.log('row', i, '=', row);
+            const rect = rects[i];
+            // console.log('rect', i, '=', rect);
+            const num_elts = row[1];
+            const rect_x = Number(rect.getAttribute('x'));
+            const rect_y = Number(rect.getAttribute('y'));
+            const rect_height = Number(rect.getAttribute('height'));
+            const unit_height = rect_height/num_elts;
+            const rect_width = Number(rect.getAttribute('width'));
+            const rect_fill = rect.getAttribute('fill');
+            // const rect_fill_opacity = Number(rect.getAttribute('fill-opacity'));
+            // const rect_stroke = rect.getAttribute('stroke');
+            // const rect_stroke_width = Number(rect.getAttribute('stroke-width'));
+            rect.setAttribute('stroke-width', 0);
+            for (let j = 0; j < num_elts; j++) {
+              const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+              circle.classList.add('__img_labels');
+              circle.setAttribute('r', rect_width/8);
+              circle.setAttribute('cx', rect_x + rect_width/2);
+              circle.setAttribute('cy', rect_y + (num_elts - j - 0.5)*unit_height);
+              circle.setAttribute('fill', rect_fill);
+              // circle.setAttribute('fill-opacity', rect_fill_opacity);
+              // circle.setAttribute('stroke', rect_stroke);
+              // circle.setAttribute('stroke-width', rect_stroke_width);
+              // console.log('adding circle elt', i, j, '=', circle);
+              svgRoot.appendChild(circle);
+            }
+          });
+          }
+
         });
+
       }
     };
   }
@@ -1201,7 +1241,9 @@
 
       const rowTemplate = new Array(combined.length * 4 + 1).fill(null);
       const intervalP = (i >= minIntervalIndex);
-      if (!intervalP) {
+      const dotChartP = Boolean(get(p, 'dot-chart'));
+
+      if(dotChartP) {
         data.addRows(get(p, 'ps').map(row => {
           const currentRow = rowTemplate.slice();
           if (row.length != 0) {
@@ -1215,13 +1257,11 @@
             }
             currentRow[4*i + 2] = `<p>${legends[i]}</p>
 <p>x: <b>${currentRow[0]}</b></p>
-<p>y: <b>${currentRow[4*i + 1]}</b></p>
-              ${labelRow}`;
-            // leave currentRow[4*i + 3] and [4*i + 4] null
+${labelRow}`;
           }
           return currentRow;
         }));
-      } else { // i.e., interval chart
+      } else if(intervalP) {
         data.addRows(get(p, 'tab').map(row => {
           const currentRow = rowTemplate.slice();
           if (row.length != 0) {
@@ -1241,11 +1281,33 @@
           }
           return currentRow;
         }));
-      };
+      } else {
+        data.addRows(get(p, 'ps').map(row => {
+          const currentRow = rowTemplate.slice();
+          if (row.length != 0) {
+            currentRow[0] = toFixnum(row[0]);
+            currentRow[4*i + 1] = toFixnum(row[1]);
+            let labelRow = null;
+            if (row.length >= 3 && row[2] !== '') {
+              labelRow = `<p>label: <b>${row[2]}</b></p>`;
+            } else {
+              labelRow = '';
+            }
+            currentRow[4*i + 2] = `<p>${legends[i]}</p>
+<p>x: <b>${currentRow[0]}</b></p>
+<p>y: <b>${currentRow[4*i + 1]}</b></p>
+${labelRow}`;
+            // leave currentRow[4*i + 3] and [4*i + 4] null
+          }
+          return currentRow;
+        }));
+      }
     });
 
     // ASSERT: if we're using custom images, *every* series will have idx 3 defined
     const hasImage = combined.every(p => get(p, 'ps').filter(p => p[3]).length > 0);
+    const dotChartP = combined.some(p => get(p, 'dot-chart'));
+    const replaceDefaultSVG = (hasImage || dotChartP);
 
     const options = {
       tooltip: {isHtml: true},
@@ -1263,9 +1325,9 @@
         // If we have our own image, make the point small and transparent
         if (i < scatters.length) {
           $.extend(seriesOptions, {
-            pointSize: hasImage ? 1 : toFixnum(get(p, 'point-size')),
+            pointSize: replaceDefaultSVG ? 0.1 : toFixnum(get(p, 'point-size')),
             lineWidth: 0,
-            dataOpacity: hasImage ? 0 : 1,
+            dataOpacity: replaceDefaultSVG ? 0 : 1,
           });
         } else if (i - scatters.length < lines.length) {
           $.extend(seriesOptions, {
@@ -1378,6 +1440,18 @@
       options['trendlines'][0]['degree'] = trendlineDegree;
     }
 
+    if (dotChartP) {
+      // ticks [] as we don't want horizontal grid lines;
+      // maxValue must be set to something as otherwise having
+      // all dots at y=0 causes vAxis to be centered at 0;
+      // we don't want any chart real estate below x-axis
+      options['vAxis'] = {
+        ticks: [],
+        minValue: 0,
+        maxValue: 10,
+      }
+    }
+
     const pointshapeType = get(ser0, 'pointshapeType');
     const pointshapeSides = toFixnum(get(ser0, 'pointshapeSides'));
     const pointshapeDent = toFixnum(get(ser0, 'pointshapeDent'));
@@ -1397,7 +1471,7 @@
       $.extend(options, {
         chartArea: {
           left: '12%',
-          width: '56%',
+          width: dotChartP? '76%' : '56%',
         }
       });
     }
@@ -1422,101 +1496,103 @@
                  backgroundMutator, 
                  selectMultipleMutator],
       overlay: (overlay, restarter, chart, container) => {
+        if(!dotChartP) {
         overlay.css({
           width: '30%',
           position: 'absolute',
           right: '0px',
           top: '50%',
-          transform: 'translateY(-50%)',
-        });
+            transform: 'translateY(-50%)',
+          });
 
-        const controller = $('<div/>');
+          const controller = $('<div/>');
 
-        overlay.append(controller);
+          overlay.append(controller);
 
-        const inputSize = 16;
+          const inputSize = 16;
 
-        const xMinC = $('<input/>', {
-          'class': 'controller',
-          type: 'text',
-          placeholder: 'x-min',
-        }).attr('size', inputSize);
-        const xMaxC = $('<input/>', {
-          'class': 'controller',
-          type: 'text',
-          placeholder: 'x-max',
-        }).attr('size', inputSize);
-        const yMinC = $('<input/>', {
-          'class': 'controller',
-          type: 'text',
-          placeholder: 'y-min',
-        }).attr('size', inputSize);
-        const yMaxC = $('<input/>', {
-          'class': 'controller',
-          type: 'text',
-          placeholder: 'y-max',
-        }).attr('size', inputSize);
-        const numSamplesC = $('<input/>', {
-          'class': 'controller',
-          type: 'text',
-          placeholder: '#samples',
-        }).attr('size', inputSize).val('2');
-        // dummy value so that a new window can be constructed correctly
-        // when numSamplesC is not used. The value must be at least 2
+          const xMinC = $('<input/>', {
+            'class': 'controller',
+            type: 'text',
+            placeholder: 'x-min',
+          }).attr('size', inputSize);
+          const xMaxC = $('<input/>', {
+            'class': 'controller',
+            type: 'text',
+            placeholder: 'x-max',
+          }).attr('size', inputSize);
+          const yMinC = $('<input/>', {
+            'class': 'controller',
+            type: 'text',
+            placeholder: 'y-min',
+          }).attr('size', inputSize);
+          const yMaxC = $('<input/>', {
+            'class': 'controller',
+            type: 'text',
+            placeholder: 'y-max',
+          }).attr('size', inputSize);
+          const numSamplesC = $('<input/>', {
+            'class': 'controller',
+            type: 'text',
+            placeholder: '#samples',
+          }).attr('size', inputSize).val('2');
+          // dummy value so that a new window can be constructed correctly
+          // when numSamplesC is not used. The value must be at least 2
 
-        const redrawC = $('<button/>', {
-          'class': 'controller',
-          text: 'Redraw',
-        }).click(() => {
-          const newWindow = getNewWindow(xMinC, xMaxC, yMinC, yMaxC, numSamplesC);
-          if (newWindow === null) return;
-          const toRet = RUNTIME.ffi.makeLeft(
-            RUNTIME.extendObj(
-              RUNTIME.makeSrcloc('dummy location'),
-              globalOptions,
-              newWindow
-            )
-          );
-          RUNTIME.getParam('remove-chart-port')();
-          restarter.resume(toRet);
-        });
+          const redrawC = $('<button/>', {
+            'class': 'controller',
+            text: 'Redraw',
+          }).click(() => {
+            const newWindow = getNewWindow(xMinC, xMaxC, yMinC, yMaxC, numSamplesC);
+            if (newWindow === null) return;
+            const toRet = RUNTIME.ffi.makeLeft(
+              RUNTIME.extendObj(
+                RUNTIME.makeSrcloc('dummy location'),
+                globalOptions,
+                newWindow
+              )
+            );
+            RUNTIME.getParam('remove-chart-port')();
+            restarter.resume(toRet);
+          });
 
-        function getBoundControl(control, name) {
-          control.val(prettyNumToStringDigits5(
-            get(get(globalOptions, name), 'value')));
-          return $('<p/>')
-           .append($('<label/>', {'class': 'controller', text: name + ': '}))
-           .append(control);
+          function getBoundControl(control, name) {
+            control.val(prettyNumToStringDigits5(
+              get(get(globalOptions, name), 'value')));
+            return $('<p/>')
+             .append($('<label/>', {'class': 'controller', text: name + ': '}))
+             .append(control);
+          }
+
+          const xMinG = getBoundControl(xMinC, 'x-min');
+          const xMaxG = getBoundControl(xMaxC, 'x-max');
+          const yMinG = getBoundControl(yMinC, 'y-min');
+          const yMaxG = getBoundControl(yMaxC, 'y-max');
+          const redrawG = $('<p/>').append(redrawC);
+
+          if (isTrue(get(globalOptions, 'is-show-samples'))) {
+            numSamplesC.val(RUNTIME.num_to_string(get(globalOptions, 'num-samples')));
+            const numSamplesG = $('<p/>')
+              .append($('<label/>', {'class': 'controller', text: '#samples: '}))
+              .append(numSamplesC);
+            controller
+              .append(xMinG)
+              .append(xMaxG)
+              .append(yMinG)
+              .append(yMaxG)
+              .append(numSamplesG)
+              .append(redrawG);
+          } else {
+            controller
+              .append(xMinG)
+              .append(xMaxG)
+              .append(yMinG)
+              .append(yMaxG)
+              .append(redrawG);
+          }
         }
 
-        const xMinG = getBoundControl(xMinC, 'x-min');
-        const xMaxG = getBoundControl(xMaxC, 'x-max');
-        const yMinG = getBoundControl(yMinC, 'y-min');
-        const yMaxG = getBoundControl(yMaxC, 'y-max');
-        const redrawG = $('<p/>').append(redrawC);
-
-        if (isTrue(get(globalOptions, 'is-show-samples'))) {
-          numSamplesC.val(RUNTIME.num_to_string(get(globalOptions, 'num-samples')));
-          const numSamplesG = $('<p/>')
-            .append($('<label/>', {'class': 'controller', text: '#samples: '}))
-            .append(numSamplesC);
-          controller
-            .append(xMinG)
-            .append(xMaxG)
-            .append(yMinG)
-            .append(yMaxG)
-            .append(numSamplesG)
-            .append(redrawG);
-        } else {
-          controller
-            .append(xMinG)
-            .append(xMaxG)
-            .append(yMinG)
-            .append(yMaxG)
-            .append(redrawG);
-        }
-
-        if(!hasImage) { return; } // If we don't have images, our work is done!
+        if (!replaceDefaultSVG) { return; } // If we don't have images, our work is done!
         
         // if custom images are defined, use the image at that location
         // and overlay it atop each dot
@@ -1537,6 +1613,7 @@
           } else {
             markers = svgRoot.children[1].children[2].children;
           }
+          if (hasImage) {
 
           const layout = chart.getChartLayoutInterface();
           // remove any labels that have previously been drawn
@@ -1561,6 +1638,43 @@
               svgRoot.appendChild(imageElt);
             });
           });
+          }
+
+          if (dotChartP) {
+            const circles = [...markers].filter(m => m.nodeName == 'circle');
+            // console.log('circles=', circles);
+            const numCircles = circles.length;
+            const circle0 = circles[0];
+            const circleR = toFixnum(get(combined[0], 'point-size')) + 1;
+            // const circleR = Number(circle0.getAttribute('r'));
+            const offsetQuantum = 2 * circleR;
+            let prevDotArray = [];
+            function tooClose(x, y) {
+              return prevDotArray.some(function(n) {
+                return ((Math.abs(x - n[0]) < offsetQuantum) &&
+                  (Math.abs(y - n[1]) < offsetQuantum));
+              });
+            }
+
+            circles.forEach((circle) => {
+              // console.log('updating circle', i);
+              const circleX = Number(circle.getAttribute('cx'));
+              let circleY = Number(circle.getAttribute('cy')) - (1.1 * circleR);
+              while (tooClose(circleX, circleY)) {
+                circleY -= offsetQuantum;
+              }
+
+              prevDotArray.push([circleX, circleY]);
+
+              const circleElt = circle.cloneNode(false);
+              circleElt.classList.add('__img_labels'); // tag for later gc
+              circleElt.setAttribute('cy', circleY);
+              circleElt.setAttribute('r', circleR);
+              circleElt.setAttribute('fill-opacity', 1);
+              Object.assign(circleElt, circle); // we should probably not steal *everything*...
+              svgRoot.appendChild(circleElt);
+            });
+          }
         });
       },
     };
