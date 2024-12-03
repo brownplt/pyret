@@ -1652,7 +1652,7 @@ ${labelRow}`;
           // legendEnabled to decided which index to look up.
           // This is brittle and needs to be revisited
           const svgRoot = chart.container.querySelector('svg');
-          // const markers = svgRoot.children[3].children[2].children; from sbcContinuation
+
           let markers;
           if(legendEnabled) {
             markers = svgRoot.children[2].children[2].children;
@@ -1687,12 +1687,16 @@ ${labelRow}`;
           }
 
           if (dotChartP) {
+            // get bounding box of chart area, and set the
+            // chartCeiling to be 80% of the vHeight of the graph
+            const graphBounds = svgRoot.children[1].children[0].getBoundingClientRect();
+            let   chartCeiling= graphBounds.top - svgRoot.getBoundingClientRect().top;
+            chartCeiling += 0.2 * graphBounds.height;
+
             const circles = [...markers].filter(m => m.nodeName == 'circle');
-            // console.log('circles=', circles);
             const numCircles = circles.length;
             const circle0 = circles[0];
             const circleR = toFixnum(get(combined[0], 'point-size')) + 1;
-            // const circleR = Number(circle0.getAttribute('r'));
             const offsetQuantum = 2 * circleR;
             let prevDotArray = [];
             function tooClose(x, y) {
@@ -1703,18 +1707,17 @@ ${labelRow}`;
             }
 
             circles.forEach((circle) => {
-              const graphBounds = svgRoot.children[1].children[0].getBoundingClientRect();
-              const graphTop = graphBounds.top - svgRoot.getBoundingClientRect().top;
               const circleX = Number(circle.getAttribute('cx'));
-              let circleY = Number(circle.getAttribute('cy')) - 1.2*circleR;
+              let   circleY = Number(circle.getAttribute('cy')) - 1.2*circleR;
               while (tooClose(circleX, circleY)) {
                 circleY -= offsetQuantum;
               }
 
-              // if circleY goes above the top of the graph, place it randomly within
-              // the y-bounds
-              if(circleY < graphTop) {
-                circleY = (Math.random() * graphBounds.height) + graphTop;
+              // if circleY goes above the ceiling, 
+              // place it randomly within the first 90% of the vHeight
+              if(circleY < chartCeiling) {
+                const randomVHeight = Math.random() * (0.8*graphBounds.height);
+                circleY = randomVHeight + chartCeiling - circleR;
               }
 
               prevDotArray.push([circleX, circleY]);
