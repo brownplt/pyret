@@ -1716,7 +1716,7 @@ ${labelRow}`;
               // if circleY goes above the ceiling, 
               // place it randomly within the first 90% of the vHeight
               if(circleY < chartCeiling) {
-                const randomVHeight = Math.random() * (0.8*graphBounds.height);
+                const randomVHeight = (1 - Math.random()**2) * (0.8*graphBounds.height);
                 circleY = randomVHeight + chartCeiling - circleR;
               }
 
