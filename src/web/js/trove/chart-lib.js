@@ -1687,36 +1687,38 @@ ${labelRow}`;
           }
 
           if (dotChartP) {
-            // get bounding box of chart area, and set the
-            // chartCeiling to be 80% of the vHeight of the graph
-            const graphBounds = svgRoot.children[1].children[0].getBoundingClientRect();
-            let   chartCeiling= graphBounds.top - svgRoot.getBoundingClientRect().top;
-            chartCeiling += 0.2 * graphBounds.height;
+            // get bounding box of graph boundaries, and set the
+            // chartCeiling to reserve the top 20% of the graph area
+            const graphBounds  = svgRoot.children[1].children[0].getBoundingClientRect();
+            let   chartCeiling = graphBounds.top - svgRoot.getBoundingClientRect().top;
+            chartCeiling      += 0.2 * graphBounds.height;
+            const usableHeight = 0.8 * graphBounds.height
 
             const circles = [...markers].filter(m => m.nodeName == 'circle');
-            const numCircles = circles.length;
-            const circle0 = circles[0];
-            const circleR = toFixnum(get(combined[0], 'point-size')) + 1;
-            const offsetQuantum = 2 * circleR;
+            const diameter = toFixnum(get(combined[0], 'point-size'));
+            const circleR = diameter / 2;
             let prevDotArray = [];
             function tooClose(x, y) {
-              return prevDotArray.some(function(n) {
-                return ((Math.abs(x - n[0]) < offsetQuantum) &&
-                  (Math.abs(y - n[1]) < offsetQuantum));
-              });
+              return prevDotArray.some( n => 
+                (Math.abs(x - n[0]) < diameter) && (Math.abs(y - n[1]) < diameter)
+              );
             }
 
+            // compute circleY, and add a new SVG to the graph
             circles.forEach((circle) => {
               const circleX = Number(circle.getAttribute('cx'));
-              let   circleY = Number(circle.getAttribute('cy')) - 1.2*circleR;
-              while (tooClose(circleX, circleY)) {
-                circleY -= offsetQuantum;
-              }
-
-              // if circleY goes above the ceiling, 
-              // place it randomly within the first 90% of the vHeight
+              
+              // Shift the circle up by r+1, so it sits on the x-axis
+              let   circleY = Number(circle.getAttribute('cy')) - (circleR + 1);
+              
+              // If it's too close to any existing circle, shift up by 1 diameter
+              while (tooClose(circleX, circleY)) { circleY -= diameter;}
+              
+              // If the new circleY goes above the ceiling, place it randomly
+              // within the first 80% of the vHeight, using (1-random^2) to
+              // bias the randomness towards low portions of the graph
               if(circleY < chartCeiling) {
-                const randomVHeight = (1 - Math.random()**2) * (0.8*graphBounds.height);
+                const randomVHeight = (1 - Math.random()**2) * usableHeight;
                 circleY = randomVHeight + chartCeiling - circleR;
               }
 
@@ -1728,7 +1730,7 @@ ${labelRow}`;
               circleElt.setAttribute('r', circleR);
               circleElt.setAttribute('stroke', 'white');
               circleElt.setAttribute('stroke-width', '1');
-              circleElt.setAttribute('fill-opacity', '0.5');
+              circleElt.setAttribute('fill-opacity', '0.8');
               Object.assign(circleElt, circle); // we should probably not steal *everything*...
               svgRoot.appendChild(circleElt);
             });
