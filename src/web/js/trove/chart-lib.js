@@ -1652,6 +1652,9 @@ ${labelRow}`;
           // legendEnabled to decided which index to look up.
           // This is brittle and needs to be revisited
           const svgRoot = chart.container.querySelector('svg');
+          const layout = chart.getChartLayoutInterface();
+          // remove any labels that have previously been drawn
+          $('.__img_labels').each((idx, n) => $(n).remove());
 
           let markers;
           if(legendEnabled) {
@@ -1661,29 +1664,25 @@ ${labelRow}`;
           }
           if (hasImage) {
 
-          const layout = chart.getChartLayoutInterface();
-          // remove any labels that have previously been drawn
-          $('.__img_labels').each((idx, n) => $(n).remove());
-
-          // for each point, (1) find the x,y location, (2) render the SVGImage,
-          // (3) center it on the datapoint, (4) steal all the events
-          // and (5) add it to the chart
-          combined.forEach((p, i) => {
-            get(p, 'ps').filter(p => p[3]).forEach((p, i) => {
-              const xPos = layout.getXLocation(data.getValue(i, 0));
-              const yPos = layout.getYLocation(data.getValue(i, 1));
-              const imgDOM = p[3].val.toDomNode();
-              p[3].val.render(imgDOM.getContext('2d'), 0, 0);
-              // make an image element from the SVG namespace
-              let imageElt = document.createElementNS("http://www.w3.org/2000/svg", 'image');
-              imageElt.classList.add('__img_labels'); // tag for later garbage collection
-              imageElt.setAttributeNS(null, 'href', imgDOM.toDataURL());
-              imageElt.setAttribute('x', xPos - imgDOM.width/2);  // center the image
-              imageElt.setAttribute('y', yPos - imgDOM.height/2); // center the image
-              Object.assign(imageElt, markers[i]); // we should probably not steal *everything*...
-              svgRoot.appendChild(imageElt);
+            // for each point, (1) find the x,y location, (2) render the SVGImage,
+            // (3) center it on the datapoint, (4) steal all the events
+            // and (5) add it to the chart
+            combined.forEach((p, i) => {
+              get(p, 'ps').filter(p => p[3]).forEach((p, i) => {
+                const xPos = layout.getXLocation(data.getValue(i, 0));
+                const yPos = layout.getYLocation(data.getValue(i, 1));
+                const imgDOM = p[3].val.toDomNode();
+                p[3].val.render(imgDOM.getContext('2d'), 0, 0);
+                // make an image element from the SVG namespace
+                let imageElt = document.createElementNS("http://www.w3.org/2000/svg", 'image');
+                imageElt.classList.add('__img_labels'); // tag for later garbage collection
+                imageElt.setAttributeNS(null, 'href', imgDOM.toDataURL());
+                imageElt.setAttribute('x', xPos - imgDOM.width/2);  // center the image
+                imageElt.setAttribute('y', yPos - imgDOM.height/2); // center the image
+                Object.assign(imageElt, markers[i]); // we should probably not steal *everything*...
+                svgRoot.appendChild(imageElt);
+              });
             });
-          });
           }
 
           if (dotChartP) {
@@ -1705,7 +1704,7 @@ ${labelRow}`;
             }
 
             // compute circleY, and add a new SVG to the graph
-            circles.forEach((circle) => {
+            circles.forEach( (circle, i) => {
               const circleX = Number(circle.getAttribute('cx'));
               
               // Shift the circle up by r+1, so it sits on the x-axis
@@ -1721,7 +1720,7 @@ ${labelRow}`;
                 const randomVHeight = (1 - Math.random()**2) * usableHeight;
                 circleY = randomVHeight + chartCeiling - circleR;
               }
-
+              // save the location of the new dot along with all the others
               prevDotArray.push([circleX, circleY]);
 
               const circleElt = circle.cloneNode(false);
