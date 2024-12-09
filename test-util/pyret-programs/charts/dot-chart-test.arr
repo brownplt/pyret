@@ -4,10 +4,12 @@ import color as C
 # include image-structs
 include math
 
-labels = [list: "cats", "dogs", "ants", "elephants"]
-count = [list: 3, 7, 4, 9]
+labels = [list: "cats", "cats", "cats",
+                "dogs", "dogs", "dogs", "dogs", "dogs", "dogs", "dogs",
+                "ants", "ants", "ants", "ants",
+                "elephants", "elephants", "elephants", "elephants", "elephants", "elephants", "elephants", "elephants", "elephants"]
 
-zoo-series = from-list.dot-chart(labels, count)
+zoo-series = from-list.dot-chart(labels)
 
 just-red = [list: C.red]
 rainbow-colors = [list: C.red, C.orange, C.yellow, C.green, C.blue, C.indigo, C.violet]

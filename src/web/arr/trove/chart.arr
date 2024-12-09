@@ -1964,28 +1964,38 @@ fun labeled-num-dot-chart-from-list(labels :: P.LoS, x-values :: P.LoN) -> DataS
   } ^ scatter-plot-series
 end
 
-fun dot-chart-from-list(labels :: P.LoS, values :: P.LoN) -> DataSeries block:
+fun dot-chart-from-list(input-labels :: P.LoS) -> DataSeries block:
   doc: ```
-       Consume labels, a list of string, and values, a list of numbers
-       and construct a dot chart
+       Consume a list of string-values and construct a dot chart
        ```
-  # Type Checking
-  values.each(check-num)
-  labels.each(check-string)
-
-  # Constants
-  label-length = labels.length()
-  value-length = values.length()
-  rational-values = map(num-to-rational, values)
 
   # Edge Case Error Checking
-  when value-length == 0:
+  when input-labels.length() == 0:
     raise("dot-chart: can't have empty data")
   end
-  when label-length <> value-length:
-    raise('dot-chart: labels and values should have the same length')
-  end
 
+  # Type Checking
+  input-labels.each(check-string)
+
+  # Walk through the (sorted) values, creating lists of labels and counts
+  unique-counts = foldl(
+    lam(acc, elt):
+      labels = acc.{0}
+      counts = acc.{1}
+      if labels.member(elt):
+        {labels; counts.set(0, counts.get(0) + 1)}
+      else:
+        {link(elt, labels); link(1, counts)}
+      end
+    end,
+    {[list: ]; [list: ]},
+    input-labels.sort())
+
+  labels = unique-counts.{0}
+  values = unique-counts.{1}
+  rational-values = map(num-to-rational, values)
+
+  # set the vAxis values, and create the data series
   {max-positive-height; max-negative-height} = prep-axis(rational-values)
 
   data-series = default-bar-chart-series.{
