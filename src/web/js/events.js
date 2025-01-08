@@ -162,6 +162,16 @@ function makeEvents(config) {
     comm.sendEvent({
       type: "pyret-init"
     });
+    if(config.initialState) {
+      addMessage({
+        process: async () => {
+          const result = await resetMessage({ state: config.initialState }, config.initialState);
+          gainControl(config);
+          return result;
+        }
+      });
+    }
+
   });
 
   const comm = commSetup(config, onmessage, gainControl, loseControl);
