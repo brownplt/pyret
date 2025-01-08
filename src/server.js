@@ -73,7 +73,9 @@ function start(config, onServerReady) {
 
   app.use(cookieSession({
     secret: config.sessionSecret,
-    key: "code.pyret.org"
+    key: "code.pyret.org",
+
+    sameSite: 'strict'
   }));
   app.use(cookieParser());
 
