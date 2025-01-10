@@ -1,8 +1,11 @@
 /* global $ jQuery CPO CodeMirror storageAPI Q createProgramCollectionAPI makeShareAPI */
 
+var originalPageLoad = Date.now();
+console.log("originalPageLoad: ", originalPageLoad);
+
 var shareAPI = makeShareAPI(process.env.CURRENT_PYRET_RELEASE);
 
-var url = require('url.js');
+var url = window.url = require('url.js');
 var modalPrompt = require('./modal-prompt.js');
 window.modalPrompt = modalPrompt;
 
@@ -1294,19 +1297,37 @@ $(function() {
       // this is blocks file. Open it with /blocks
       window.location.href = window.location.href.replace('editor', 'blocks');
     }
-    // NOTE(joe): Clearing history to address https://github.com/brownplt/pyret-lang/issues/386,
-    // in which undo can revert the program back to empty
-    CPO.editor.cm.setValue(c);
-    CPO.editor.cm.clearHistory();
+
+    if(!params["get"]["controlled"]) {
+      // NOTE(joe): Clearing history to address https://github.com/brownplt/pyret-lang/issues/386,
+      // in which undo can revert the program back to empty
+      CPO.editor.cm.setValue(c);
+      CPO.editor.cm.clearHistory();
+    }
+    else {
+      const hideWhenControlled = [
+        "#fullConnectButton",
+        "#logging",
+        "#logout"
+      ];
+      const removeWhenControlled = [
+        "#connectButtonli",
+      ];
+      hideWhenControlled.forEach(s => $(s).hide());
+      removeWhenControlled.forEach(s => $(s).remove());
+    }
+
   });
 
   programLoaded.fail(function() {
     CPO.documents.set("definitions://", CPO.editor.cm.getDoc());
   });
 
+  console.log("About to load Pyret: ", originalPageLoad, Date.now());
+
   var pyretLoad = document.createElement('script');
-  console.log(process.env.PYRET);
-  pyretLoad.src = process.env.PYRET;
+  console.log(window.PYRET);
+  pyretLoad.src = window.PYRET;
   pyretLoad.type = "text/javascript";
   document.body.appendChild(pyretLoad);
 
@@ -1375,21 +1396,19 @@ $(function() {
 
   });
 
-  const onRunHandlers = [];
-  function onRun(handler) {
-    onRunHandlers.push(handler);
+  function makeEvent() {
+    const handlers = [];
+    function on(handler) {
+      handlers.push(handler);
+    }
+    function trigger() {
+      handlers.forEach(h => h());
+    }
+    return [on, trigger];
   }
-  function triggerOnRun() {
-    onRunHandlers.forEach(h => h());
-  }
-
-  const onInteractionHandlers = [];
-  function onInteraction(handler) {
-    onInteractionHandlers.push(handler);
-  }
-  function triggerOnInteraction(interaction) {
-    onInteractionHandlers.forEach(h => h(interaction));
-  }
+  let [ onRun, triggerOnRun ] = makeEvent();
+  let [ onInteraction, triggerOnInteraction ] = makeEvent();
+  let [ onLoad, triggerOnLoad ] = makeEvent();
 
   programLoaded.fin(function() {
     CPO.editor.focus();
@@ -1401,15 +1420,30 @@ $(function() {
   CPO.updateName = updateName;
   CPO.showShareContainer = showShareContainer;
   CPO.loadProgram = loadProgram;
+  CPO.storageAPI = storageAPI;
   CPO.cycleFocus = cycleFocus;
   CPO.say = say;
   CPO.sayAndForget = sayAndForget;
-  CPO.onRun = onRun;
-  CPO.triggerOnRun = triggerOnRun;
-  CPO.onInteraction = onInteraction;
-  CPO.triggerOnInteraction = triggerOnInteraction;
+  CPO.events = {
+    onRun,
+    triggerOnRun,
+    onInteraction,
+    triggerOnInteraction,
+    onLoad,
+    triggerOnLoad
+  };
 
-  if(window.parent !== window) {
-    makeEvents({ CPO: CPO, sendPort: window.parent, receivePort: window });
+  let initialState = params["get"]["initialState"];
+
+  if (typeof acquireVsCodeApi === "function") {
+    window.MESSAGES = makeEvents({
+      CPO: CPO,
+      sendPort: acquireVsCodeApi(),
+      receivePort: window,
+      initialState
+    });
+  }
+  else if((window.parent && (window.parent !== window)) || process.env.NODE_ENV === "development") {
+    window.MESSAGES = makeEvents({ CPO: CPO, sendPort: window.parent, receivePort: window, initialState });
   }
 });

@@ -42,6 +42,7 @@
   ],
   nativeRequires: [
     "cpo/gdrive-locators",
+    "cpo/file-locator",
     "cpo/http-imports",
     "cpo/cpo-builtin-modules",
     "cpo/modal-prompt",
@@ -55,7 +56,7 @@
   theModule: function(runtime, namespace, uri,
                       compileLib, compileStructs, pyRepl, cpo, replUI, textHandlers,
                       parsePyret, runtimeLib, loadLib, builtinModules, cpoBuiltins,
-                      gdriveLocators, http, cpoModules, _modalPrompt,
+                      gdriveLocators, fileLocator, http, cpoModules, _modalPrompt,
                       rtLib) {
 
 
@@ -150,6 +151,18 @@
             else if (protocol === "gdrive-js") {
               return "gdrive-js://" + arr[1];
             }
+            else if (protocol === "file") {
+              if(!window.MESSAGES) {
+                console.error("Unknown import: ", dependency);
+                return protocol + "://" + arr.join(":");
+              }
+              return runtime.pauseStack((restarter) => {
+                const realpath = window.MESSAGES.sendRpc('path', 'resolve', [arr[0]]);
+                realpath.then((realpath) => {
+                  restarter.resume(`file://${realpath}`);
+                });
+              });
+            }
             else {
               console.error("Unknown import: ", dependency);
               return protocol + "://" + arr.join(":");
@@ -190,6 +203,10 @@
                 }
                 else if (protocol === "gdrive-js") {
                   return constructors.makeGDriveJSLocator(arr[0], arr[1]);
+                }
+                else if (protocol === "file" && window.MESSAGES) {
+                  var fileLocatorConstructor = fileLocator.makeFileLocatorConstructor(window.MESSAGES.sendRpc, runtime, compileLib, compileStructs, parsePyret, builtinModules, cpo);
+                  return fileLocatorConstructor.makeFileLocator(arr[0]);
                 }
                 /*
                 else if (protocol === "js-http") {
@@ -320,13 +337,24 @@
             runDropdown: $('#runDropdown')
           });
 
-      // NOTE(joe): assigned on window for debuggability
-      window.RUN_CODE = CPO.RUN_CODE = function(src) {
-        doRunAction(src, true);
+      // NOTE(joe): assigned on window for embedding API in events.js, and for debugging
+      // NOTE(joe): Some of the CPO internals use Q promises. The withResolvers pattern
+      // promotes these to real JS promises that will work with e.g. async functions.
+      window.RUN_CODE = CPO.RUN_CODE = async function(src) {
+        const result = doRunAction(src, true);
+        const { promise, resolve, reject } = Promise.withResolvers();
+        result.then(resolve);
+        result.catch(reject);
+        return promise;
       };
-      window.RUN_INTERACTION = CPO.RUN_INTERACTION = function(src) {
-        return replWidget.runner(src, true);
+      window.RUN_INTERACTION = CPO.RUN_INTERACTION = async function(src) {
+        const result = replWidget.runner(src, true);
+        const { promise, resolve, reject } = Promise.withResolvers();
+        result.then(resolve);
+        result.catch(reject);
+        return promise;
       };
+      window.replWidget = CPO.replWidget = replWidget;
 
       /*
       $("#runDropdown").click(function() {
@@ -363,7 +391,7 @@
       */
       function doRunAction(src, synthetic) {
         if(!synthetic) {
-          CPO.triggerOnRun();
+          CPO.events.triggerOnRun();
         }
         editor.cm.operation(function() {
           editor.cm.clearGutter("test-marker-gutter");
@@ -384,11 +412,9 @@
         }
         switch (currentAction) {
           case "run":
-            replWidget.runCode(src, {check: true, cm: editor.cm});
-            break;
+            return replWidget.runCode(src, {check: true, cm: editor.cm});
           case "tc-and-run":
-            replWidget.runCode(src, {check: true, cm: editor.cm, "type-check": true});
-            break;
+            return replWidget.runCode(src, {check: true, cm: editor.cm, "type-check": true});
         }
       }
 

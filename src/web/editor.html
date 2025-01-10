@@ -4,6 +4,7 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
   <title>code.pyret.org</title>
   <link rel="preload" href="{{&PYRET}}" as="script">
+  <script>window.PYRET = "{{&PYRET}}";</script>
   <link rel="stylesheet" href="/css/reset.css" />
   <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.4/themes/smoothness/jquery-ui.css" />
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Fira+Mono:400,700" />
@@ -458,7 +459,6 @@ function handleGoogLoad() {
 var POSTMESSAGE_ORIGIN = "{{{ POSTMESSAGE_ORIGIN }}}";
 console.log(window.performance.now());
 </script>
-<script src="js/events.js"></script>
 <script src="js/beforePyret.js"></script>
 <script>
 var APP_BASE_URL = "{{{ BASE_URL }}}";
@@ -471,6 +471,7 @@ $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
   }
 });
 </script>
+<script src="js/events.js"></script>
 
   </main>
 </body>
