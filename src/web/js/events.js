@@ -149,7 +149,7 @@ function makeEvents(config) {
     replUpdate(state.replContents);
   }
 
-  config.CPO.onLoad(async function () {
+  config.CPO.events.onLoad(async function () {
     replCM().on("change", function (instance, change) {
       if (change.origin === thisAPI || change.origin === "setValue") {
         return;
@@ -211,7 +211,7 @@ function makeEvents(config) {
     }, "Made a change to the program.");
   });
 
-  config.CPO.onRun(function () {
+  config.CPO.events.onRun(function () {
     interactionsSinceLastRun = [];
     definitionsAtLastRun = getCurrentState(config).editorContents;
     comm.sendEvent({
@@ -230,7 +230,7 @@ function makeEvents(config) {
     replCM().setOption("readOnly", "noCursor");
   }
 
-  config.CPO.onInteraction(function (interaction) {
+  config.CPO.events.onInteraction(function (interaction) {
     interactionsSinceLastRun.push(interaction);
     // When we get this event, the repl may or may not have been cleared,
     // so we explicitly pass it as the empty string.

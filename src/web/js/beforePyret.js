@@ -1396,29 +1396,19 @@ $(function() {
 
   });
 
-  const onRunHandlers = [];
-  function onRun(handler) {
-    onRunHandlers.push(handler);
+  function makeEvent() {
+    const handlers = [];
+    function on(handler) {
+      handlers.push(handler);
+    }
+    function trigger() {
+      handlers.forEach(h => h());
+    }
+    return [on, trigger];
   }
-  function triggerOnRun() {
-    onRunHandlers.forEach(h => h());
-  }
-
-  const onInteractionHandlers = [];
-  function onInteraction(handler) {
-    onInteractionHandlers.push(handler);
-  }
-  function triggerOnInteraction(interaction) {
-    onInteractionHandlers.forEach(h => h(interaction));
-  }
-
-  const onLoadHandlers = [];
-  function onLoad(handler) {
-    onLoadHandlers.push(handler);
-  }
-  function triggerOnLoad() {
-    onLoadHandlers.forEach(h => h());
-  }
+  let [ onRun, triggerOnRun ] = makeEvent();
+  let [ onInteraction, triggerOnInteraction ] = makeEvent();
+  let [ onLoad, triggerOnLoad ] = makeEvent();
 
   programLoaded.fin(function() {
     CPO.editor.focus();
@@ -1434,12 +1424,14 @@ $(function() {
   CPO.cycleFocus = cycleFocus;
   CPO.say = say;
   CPO.sayAndForget = sayAndForget;
-  CPO.onRun = onRun;
-  CPO.onLoad = onLoad;
-  CPO.triggerOnRun = triggerOnRun;
-  CPO.onInteraction = onInteraction;
-  CPO.triggerOnInteraction = triggerOnInteraction;
-  CPO.triggerOnLoad = triggerOnLoad;
+  CPO.events = {
+    onRun,
+    triggerOnRun,
+    onInteraction,
+    triggerOnInteraction,
+    onLoad,
+    triggerOnLoad
+  };
 
   if(localSettings.getItem("sawSummer2021Message") !== "saw-summer-2021-message") {
     const message = $("<span>");
