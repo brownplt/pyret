@@ -67,7 +67,7 @@
   },
   "scripts": {
     "local-install": "heroku local:run npm install",
-    "postinstall": "node_modules/webpack/bin/webpack.js && make -j3 web",
+    "postinstall": "git submodule init && git submodule update && node_modules/webpack/bin/webpack.js && make -j3 web",
     "test": "karma start --single-run",
     "test-watch": "karma start",
     "lint": "eslint src",
