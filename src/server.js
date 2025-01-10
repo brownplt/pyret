@@ -75,7 +75,7 @@ function start(config, onServerReady) {
     secret: config.sessionSecret,
     key: "code.pyret.org",
 
-    sameSite: 'strict'
+    sameSite: 'lax'
   }));
   app.use(cookieParser());
 
