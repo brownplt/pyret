@@ -506,6 +506,7 @@ $(function() {
   function updateName(p) {
     filename = p.getName();
     $("#filename").text(" (" + truncateName(filename) + ")");
+    $("#filename").attr('title', filename);
     setTitle(filename);
     showShareContainer(p);
   }
