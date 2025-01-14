@@ -145,6 +145,9 @@ function makeEvents(config) {
       editorUpdate(state.definitionsAtLastRun);
       await window.RUN_CODE(state.definitionsAtLastRun);
     }
+    else if (state.definitionsAtLastRun === false) {
+      await window.RUN_CODE("");
+    }
     const interactions = state.interactionsSinceLastRun;
     for(let i = 0; i < interactions.length; i += 1) {
       await runInteraction(interactions[i]);
