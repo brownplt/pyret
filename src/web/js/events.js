@@ -105,6 +105,8 @@ function makeEvents(config) {
   const replCM = function() { return config.CPO.replWidget.cm; }
   config.replCM = replCM;
 
+  config.inControl = false;
+
   var runButton = $("#runButton");
   var runDropdown = $("#runDropdown");
   var breakButton = $("#breakButton");
@@ -114,6 +116,7 @@ function makeEvents(config) {
     }, "Tried to interact while not in control.");
   }
   function loseControl(config) {
+    config.inControl = false;
     config.CPO.editor.cm.setOption('readOnly', 'nocursor');
     config.CPO.replWidget.cm.setOption('readOnly', 'nocursor');
     config.CPO.editor.cm.getWrapperElement().addEventListener('click', sendControlWarning);
@@ -123,6 +126,7 @@ function makeEvents(config) {
     breakButton.hide();
   }
   function gainControl(config) {
+    config.inControl = true;
     config.CPO.editor.cm.setOption('readOnly', false);
     config.CPO.replWidget.cm.setOption('readOnly', false);
     config.CPO.editor.cm.getWrapperElement().removeEventListener('click', sendControlWarning);
@@ -195,6 +199,9 @@ function makeEvents(config) {
     );
     window.setTimeout(() => {
       replCM().refresh();
+      if(config.inControl) {
+        replCM().focus();
+      }
     }, 100);
   }
 
@@ -226,8 +233,10 @@ function makeEvents(config) {
     editorUpdate(code);
     definitionsAtLastRun = code;
     await window.RUN_CODE(code);
-    replCM().display.input.blur();
-    replCM().setOption("readOnly", "noCursor");
+    if(!config.inControl) {
+      replCM().display.input.blur();
+      replCM().setOption("readOnly", "noCursor");
+    }
   }
 
   config.CPO.events.onInteraction(function (interaction) {
@@ -242,19 +251,22 @@ function makeEvents(config) {
 
   async function runInteraction(src) {
     interactionsSinceLastRun.push(src);
-    $(".repl-prompt")
-      .find(".CodeMirror")[0]
-      .CodeMirror.setOption("readOnly", "nocursor");
+    if(!config.inControl) {
+      $(".repl-prompt")
+        .find(".CodeMirror")[0]
+        .CodeMirror.setOption("readOnly", "nocursor");
+    }
     await window.RUN_INTERACTION(src);
 
     // We do this again because the CPO infrastructure
     // explicitly re-enables the prompt at the end of
     // RUN_INTERACTION, but we don't want that here!
-    $(".repl-prompt")
-      .find(".CodeMirror")[0]
-      .CodeMirror.setOption("readOnly", "nocursor");
-    replCM().display.input.blur();
-
+    if(!config.inControl) {
+      $(".repl-prompt")
+        .find(".CodeMirror")[0]
+        .CodeMirror.setOption("readOnly", "nocursor");
+      replCM().display.input.blur();
+    }
   }
 
   const initialState = {
@@ -394,10 +406,24 @@ function makeEvents(config) {
               message.change.to,
               thisAPI
             );
+          }
+        });
+        // These need to be separate messages to ensure that replCM() processes
+        // before asking it to refresh
+        addMessage({
+          process: async () => {
+            replCM().refresh();
+            if(config.inControl) {
+              replCM().focus();
+            }
+          }
+        });
+        addMessage({
+          process: async() => {
             if(replCM().getValue() !== state.replContents) {
               console.log("REPL contents disagreed with message state, synchronizing.", replCM().getValue(), state.replContents)
               replUpdate(state.replContents);
-            }    
+            }
           }
         });
         break;
