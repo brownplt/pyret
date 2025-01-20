@@ -7,14 +7,14 @@ import { Buffer } from 'buffer';
 const fs = vscode.workspace.fs;
 const path = {
   dirname: (d : string) : string => {
-    return Utils.dirname(URI.parse(d)).fsPath;
+    return String(Utils.dirname(URI.parse(d)));
   },
   resolve: (base : string, p : string) : string => {
     if(p === undefined) { return Utils.resolvePath(URI.parse(base)).fsPath; }
-    return Utils.resolvePath(URI.parse(base), p).fsPath;
+    return String(Utils.resolvePath(URI.parse(base), p));
   },
   join: (p1 : string, p2 : string) : string => {
-    return Utils.joinPath(URI.parse(p1), p2).fsPath;
+    return String(Utils.joinPath(URI.parse(p1), p2));
   }
 };
 
@@ -58,12 +58,10 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
     const knownModules = {
       'fs': {
         'readFileSync': async (p: string) => {
-          const actualCwd = path.dirname(document.uri.fsPath);
-          const resolved = path.resolve(actualCwd, p);
-          if (!resolved.startsWith(path.dirname(document.uri.fsPath))) {
-            throw new Error(`Bad path outside of current directory: ${resolved} ${actualCwd}`);
-          }
-          const contents = await vscode.workspace.fs.readFile(vscode.Uri.file(resolved));
+          const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
+          console.log(document.uri);
+          const contents = await vscode.workspace.fs.readFile(pathUri);
+          console.log(contents);
           return Buffer.from(contents).toString('utf8');
         }
       },

@@ -40,6 +40,7 @@
 		"@types/vscode": "^1.73.0",
 		"@typescript-eslint/eslint-plugin": "^7.14.0",
 		"@typescript-eslint/parser": "^7.14.0",
+		"@vscode/test-web": "^0.0.65",
 		"eslint": "^8.26.0",
 		"generator-code": "^1.11.5",
 		"ts-loader": "^9.5.2",
@@ -48,6 +49,5 @@
 		"webpack": "^5.97.1",
 		"webpack-cli": "^6.0.1",
 		"yo": "^5.1.0"
-	},
-	"dependencies": {}
+	}
 }
