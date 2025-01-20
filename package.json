@@ -39,7 +39,7 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
+		"compile": "tsc -p ./; webpack",
 		"lint": "eslint \"src/**/*.ts\"",
 		"watch": "tsc -w -p ./"
 	},
