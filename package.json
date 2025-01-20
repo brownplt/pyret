@@ -21,15 +21,6 @@
 	"contributes": {
 		"customEditors": [
 			{
-				"viewType": "pyret-parley.parley",
-				"displayName": "Pyret Parley",
-				"selector": [
-					{
-						"filenamePattern": "*.parrley"
-					}
-				]
-			},
-			{
 				"viewType": "pyret-parley.cpo",
 				"displayName": "Pyret code.pyret.org",
 				"selector": [
@@ -42,9 +33,7 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./; webpack",
-		"lint": "eslint \"src/**/*.ts\"",
-		"watch": "tsc -w -p ./"
+		"compile": "webpack --mode production",
 	},
 	"devDependencies": {
 		"@types/node": "^18",
