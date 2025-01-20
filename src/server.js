@@ -529,6 +529,7 @@ function start(config, onServerReady) {
   });
 
   app.get("/editor", function(req, res) {
+    res.set("Cross-Origin-Resource-Policy", "cross-origin");
     res.render("editor.html", {
       PYRET: process.env.PYRET,
       BASE_URL: config.baseUrl,
