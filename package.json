@@ -15,7 +15,7 @@
 	"activationEvents": [],
 	"repository": "https://github.com/jpolitz/pyret-parley-vscode",
 	"files": [
-		"dist"
+		"dist/web/**/*"
 	],
 	"browser": "./dist/web/extension.js",
 	"contributes": {
