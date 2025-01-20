@@ -33,7 +33,7 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
-		"compile": "webpack --mode production",
+		"compile": "webpack --mode production"
 	},
 	"devDependencies": {
 		"@types/node": "^18",
