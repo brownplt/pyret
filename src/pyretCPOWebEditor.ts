@@ -202,12 +202,12 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
         </style>
         </head>
         <body>
-        <iframe id="pyret" frameBorder="0" width="100%" height="100%" src="https://pyret-vmt-dfb765867402.herokuapp.com/editor#controlled=true"></iframe>
+        <iframe id="pyret" frameBorder="0" width="100%" height="100%" src="https://pyret-horizon.herokuapp.com/editor#controlled=true"></iframe>
         <script>
         const pyret = document.getElementById('pyret');
         const vscode = acquireVsCodeApi();
         window.addEventListener('message', (e) => {
-          if(e.origin !== 'https://pyret-vmt-dfb765867402.herokuapp.com') {
+          if(e.origin !== 'https://pyret-horizon.herokuapp.com') {
             pyret.contentWindow.postMessage(e.data, "*");
           }
           else {
