@@ -15,6 +15,7 @@
 	"activationEvents": [],
 	"repository": "https://github.com/jpolitz/pyret-parley-vscode",
 	"main": "./out/extension.js",
+	"browser": "./out/webExtension.js",
 	"contributes": {
 		"customEditors": [
 			{
@@ -50,5 +51,8 @@
 		"@typescript-eslint/parser": "^7.14.0",
 		"eslint": "^8.26.0",
 		"typescript": "^5.5.2"
+	},
+	"dependencies": {
+		"webpack": "^5.97.1"
 	}
 }
