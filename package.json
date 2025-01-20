@@ -14,8 +14,7 @@
 	],
 	"activationEvents": [],
 	"repository": "https://github.com/jpolitz/pyret-parley-vscode",
-	"main": "./out/extension.js",
-	"browser": "./out/webExtension.js",
+	"browser": "./dist/web/extension.js",
 	"contributes": {
 		"customEditors": [
 			{
@@ -50,7 +49,12 @@
 		"@typescript-eslint/eslint-plugin": "^7.14.0",
 		"@typescript-eslint/parser": "^7.14.0",
 		"eslint": "^8.26.0",
-		"typescript": "^5.5.2"
+		"generator-code": "^1.11.5",
+		"ts-loader": "^9.5.2",
+		"typescript": "^5.5.2",
+		"vscode-uri": "^3.0.8",
+		"webpack-cli": "^6.0.1",
+		"yo": "^5.1.0"
 	},
 	"dependencies": {
 		"webpack": "^5.97.1"
