@@ -14,6 +14,9 @@
 	],
 	"activationEvents": [],
 	"repository": "https://github.com/jpolitz/pyret-parley-vscode",
+	"files": [
+		"dist"
+	],
 	"browser": "./dist/web/extension.js",
 	"contributes": {
 		"customEditors": [
@@ -53,10 +56,10 @@
 		"ts-loader": "^9.5.2",
 		"typescript": "^5.5.2",
 		"vscode-uri": "^3.0.8",
+		"webpack": "^5.97.1",
 		"webpack-cli": "^6.0.1",
 		"yo": "^5.1.0"
 	},
 	"dependencies": {
-		"webpack": "^5.97.1"
 	}
 }
