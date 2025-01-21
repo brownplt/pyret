@@ -18,6 +18,9 @@ if(!!Q) {
 seedrandom = require("seedrandom");
 define("seedrandom", [], function() {return seedrandom;});
 
+csv = require("fast-csv");
+define("fast-csv", [], function() {return csv;});
+
 sourcemap = require("source-map");
 define("source-map", [], function () { return sourcemap; });
 

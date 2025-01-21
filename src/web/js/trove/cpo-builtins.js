@@ -16,6 +16,7 @@
     { "import-type": "builtin", "name": "vector-util" },
     { "import-type": "builtin", "name": "matrix-util" },
     { "import-type": "builtin", "name": "matrices" },
+    { "import-type": "builtin", "name": "csv" },
     { "import-type": "builtin", "name": "empty-context" },
     { "import-type": "builtin", "name": "essentials2020" },
     { "import-type": "builtin", "name": "essentials2021" },
