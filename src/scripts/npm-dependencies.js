@@ -46,7 +46,6 @@ if(!!google) {
 var fsWrapper = {
   fs: {
     readFile: async function(path, opts, callback) {
-      debugger;
       if(!window.MESSAGES.sendRpc) { throw new Error("Cannot readFile on the web"); }
       else {
         try {

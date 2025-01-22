@@ -3,10 +3,11 @@
     { "import-type": "builtin", "name": "image-lib" }
   ],
   nativeRequires: [
-    "pyret-base/js/js-numbers"
+    "pyret-base/js/js-numbers",
+    "fs"
   ],
   provides: {},
-  theModule: function(runtime, namespace, uri, imageLib, jsnums) {
+  theModule: function(runtime, namespace, uri, imageLib, jsnums, fs) {
     var image = runtime.getField(imageLib, "internal");
     
     function makeImageLib(moduleName, annots) {
@@ -129,6 +130,20 @@
           rawImage.src = String(url);
         });
       };
+
+      var imageFile = function(path) {
+        return runtime.pauseStack(function(restarter) {
+          fs.readFile(path, {}, (err, result) => {
+            if(!err) { restarter.error(runtime.ffi.throwMessageException(String(err))); }
+            else {
+              // create a data url from the result from readFile stored in result:
+              var dataURL = "data:image;base64," + result.toString('base64');
+              return bitmapURL(dataURL);
+            }
+          })
+        })
+      }
+
       var values = {};
       function f(name, fun) {
         values[name] = runtime.makeFunction(fun, name);
@@ -164,6 +179,10 @@
       f("image-url", function(maybeURL) {
         checkArity(1, arguments, "image-url", false);
         return bitmapURL(maybeURL);
+      }),
+      f("image-file", function(maybeURL) {
+        checkArity(1, arguments, "image-file", false);
+        return imageFile(maybeURL);
       }),
       f("images-difference", function(maybeImage1, maybeImage2) {
         checkArity(2, arguments, "image", false);
