@@ -56,6 +56,18 @@ var fsWrapper = {
           return callback(e);
         }
       }
+    },
+    readFileBytes: async function(path, opts, callback) {
+      if(!window.MESSAGES.sendRpc) { throw new Error("Cannot readFile on the web"); }
+      else {
+        try {
+          const result = await window.MESSAGES.sendRpc('fs', 'readFile', [path]);
+          return callback(undefined, result);
+        }
+        catch(e) {
+          return callback(e);
+        }
+      }
     }
   }
 }

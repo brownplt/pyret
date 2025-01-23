@@ -124,21 +124,49 @@
             restarter.resume(makeImage(image.makeFileImage(String(url), rawImage)));
           };
           rawImage.onerror = function(e) {
-            debugger;
             restarter.error(runtime.ffi.makeMessageException("Unable to load " + originalUrl + ". If that URL loads when you open it in your browser, there may be an issue with how that website serves images for programs. One workaround is to download the image, put it in your Google Drive, and use the 'Insert' button to add it to your program."));
           };
           rawImage.src = String(url);
         });
       };
 
+
+      // Some discussion of this code at https://stackoverflow.com/a/66046176/2718315
+      async function bufferToBase64(buffer, mime) {
+        const base64url = await new Promise(r => {
+          const reader = new FileReader()
+          reader.onload = () => r(reader.result)
+          reader.readAsDataURL(new Blob([buffer]))
+        });
+        const data = base64url.slice(base64url.indexOf(",") + 1);
+        return `data:${mime};base64, ${data}`;
+      }
+      const extensiontypes = {
+        "png": "image/png",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg"
+      };
       var imageFile = function(path) {
+        const lastDot = path.lastIndexOf(".");
+        if(lastDot === -1) { throw runtime.ffi.makeMessageException("Path did not have a png or jpeg extension"); }
+        const extension = path.slice(lastDot + 1).toLowerCase();
+        const mime = extensiontypes[extension];
+        if(!mime) { throw runtime.ffi.makeMessageException("Path did not have a png or jpeg extension"); }
         return runtime.pauseStack(function(restarter) {
-          fs.readFile(path, {}, (err, result) => {
-            if(!err) { restarter.error(runtime.ffi.throwMessageException(String(err))); }
+          fs.readFileBytes(path, {}, async (err, result) => {
+            window.THE_RESULT = result;
+            if(err) { restarter.error(runtime.ffi.throwMessageException(String(err))); }
             else {
               // create a data url from the result from readFile stored in result:
-              var dataURL = "data:image;base64," + result.toString('base64');
-              return bitmapURL(dataURL);
+              var dataURL = await bufferToBase64(result, mime);
+              var rawImage = new Image();
+              rawImage.onload = function() {
+                restarter.resume(makeImage(image.makeFileImage(dataURL, rawImage)));
+              };
+              rawImage.onerror = function(e) {
+                restarter.error(runtime.ffi.makeMessageException("Unable to load " + path));
+              };
+              rawImage.src = dataURL;
             }
           })
         })
@@ -180,9 +208,9 @@
         checkArity(1, arguments, "image-url", false);
         return bitmapURL(maybeURL);
       }),
-      f("image-file", function(maybeURL) {
+      f("image-file", function(path) {
         checkArity(1, arguments, "image-file", false);
-        return imageFile(maybeURL);
+        return imageFile(path);
       }),
       f("images-difference", function(maybeImage1, maybeImage2) {
         checkArity(2, arguments, "image", false);
