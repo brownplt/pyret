@@ -252,7 +252,7 @@ function makeEvents(config) {
     }, `Ran the last interaction, ${interaction}.`, state);
   });
 
-  async function runInteraction(src) {
+  async function runInteraction(src, reportAnswer) {
     interactionsSinceLastRun.push(src);
     if(!config.inControl) {
       $(".repl-prompt")
@@ -269,6 +269,15 @@ function makeEvents(config) {
         .find(".CodeMirror")[0]
         .CodeMirror.setOption("readOnly", "nocursor");
       replCM().display.input.blur();
+    }
+
+    if(typeof reportAnswer === 'string') {
+      const state = { ...getCurrentState(config), replContents: "" };
+      comm.sendEvent({
+        type: "interactionResult",
+        reportAnswer,
+        textResult: $("#output").children().last().text(),
+      }, `Reporting an interaction by request, ${src} ${reportAnswer}.`, state);
     }
   }
 
@@ -358,7 +367,7 @@ function makeEvents(config) {
       });
       return;
     }
-    if(state.messageNumber !== messageCounter + 1) {
+    if(!config.inControl && (state.messageNumber !== messageCounter + 1)) {
       console.log("Messages received in a strange order: ", message, state, messageCounter, getCurrentState(config));
       messageQueue = [];
       stop();
@@ -393,7 +402,7 @@ function makeEvents(config) {
               message.change.to,
               thisAPI
             );
-            if(config.CPO.editor.cm.getValue() !== state.editorContents) {
+            if(!config.inControl && config.CPO.editor.cm.getValue() !== state.editorContents) {
               console.log("Editor contents disagreed with message state, synchronizing.", config.CPO.editor.cm.getValue(), state.editorContents)
               editorUpdate(state.editorContents);
             }
@@ -423,7 +432,7 @@ function makeEvents(config) {
         });
         addMessage({
           process: async() => {
-            if(replCM().getValue() !== state.replContents) {
+            if(!config.inControl && replCM().getValue() !== state.replContents) {
               console.log("REPL contents disagreed with message state, synchronizing.", replCM().getValue(), state.replContents)
               replUpdate(state.replContents);
             }
@@ -435,7 +444,7 @@ function makeEvents(config) {
           process: async () => {
             const interactions = state.interactionsSinceLastRun;
             const src = interactions[interactions.length - 1];
-            return runInteraction(src);
+            return runInteraction(src, message.reportAnswer);
           }
         });
         break;
