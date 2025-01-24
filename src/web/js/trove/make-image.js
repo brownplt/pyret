@@ -146,12 +146,13 @@
         "jpg": "image/jpeg",
         "jpeg": "image/jpeg"
       };
+      const allowedExtensions = Object.keys(extensiontypes);
       var imageFile = function(path) {
         const lastDot = path.lastIndexOf(".");
-        if(lastDot === -1) { throw runtime.ffi.makeMessageException("Path did not have a png or jpeg extension"); }
+        if(lastDot === -1) { throw runtime.ffi.makeMessageException("Path to image-file did not have an extension, must be one of " + allowedExtensions.join(", ")); }
         const extension = path.slice(lastDot + 1).toLowerCase();
         const mime = extensiontypes[extension];
-        if(!mime) { throw runtime.ffi.makeMessageException("Path did not have a png or jpeg extension"); }
+        if(!mime) { throw runtime.ffi.makeMessageException(`Path to image-file did not have a valid extension (got ${extension}), must be one of ${allowedExtensions.join(", ")}`); }
         return runtime.pauseStack(function(restarter) {
           fs.readFile(path, {}, async (err, result) => {
             if(err) { restarter.error(runtime.ffi.throwMessageException(String(err))); }
@@ -209,6 +210,7 @@
       }),
       f("image-file", function(path) {
         checkArity(1, arguments, "image-file", false);
+        c1("image-file", path, annString);
         return imageFile(path);
       }),
       f("images-difference", function(maybeImage1, maybeImage2) {
