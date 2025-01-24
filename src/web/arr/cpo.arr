@@ -2,7 +2,9 @@ provide *
 import ast as A
 import either as E
 import load-lib as L
-import strin
+import string-dict as SD
+import file("../../../pyret/src/arr/compiler/compile-structs.arr") as CS
+import file("../../../pyret/src/arr/compiler/compile-lib.arr") as CL
 import file("../../../pyret/src/arr/compiler/repl.arr") as R
 import file("../../../pyret/src/arr/compiler/js-of-pyret.arr") as JSP
 import file("../../../pyret/src/arr/compiler/ast-util.arr") as AU
