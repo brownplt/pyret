@@ -18,6 +18,9 @@ if(!!Q) {
 seedrandom = require("seedrandom");
 define("seedrandom", [], function() {return seedrandom;});
 
+csv = require("fast-csv");
+define("fast-csv", [], function() {return csv;});
+
 sourcemap = require("source-map");
 define("source-map", [], function () { return sourcemap; });
 
@@ -40,7 +43,24 @@ if(!!google) {
   define("google-charts", [], function() {return google;});
 }
 
-define("fs", [], function () { return {}; });
+var fsWrapper = {
+  fs: {
+    readFile: async function(path, opts, callback) {
+      debugger;
+      if(!window.MESSAGES.sendRpc) { throw new Error("Cannot readFile on the web"); }
+      else {
+        try {
+          const result = await window.MESSAGES.sendRpc('fs', 'readFileSync', [path]);
+          return callback(undefined, result);
+        }
+        catch(e) {
+          return callback(e);
+        }
+      }
+    }
+  }
+}
+define("fs", [], function () { return fsWrapper.fs; });
 
 // NOTE(joe): this is slightly bogus, but due to the way pathlib can load, even
 // though it's not used, this needs to be defined (it represents the separator
