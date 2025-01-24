@@ -27,6 +27,11 @@ export function getNonce() {
   return text;
 }
 
+// We support a small subset of the actual fs opts, which we grow as needed
+type ReadFileOpts =
+    'utf8'
+  | { encoding?: 'utf8' };
+
 export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
 
   public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -57,12 +62,15 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
   ): Promise<void> {
     const knownModules = {
       'fs': {
-        'readFileSync': async (p: string) => {
+        'readFile': async (p: string, opts : ReadFileOpts) => {
           const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
-          console.log(document.uri);
           const contents = await vscode.workspace.fs.readFile(pathUri);
-          console.log(contents);
-          return Buffer.from(contents).toString('utf8');
+          if(opts === 'utf8' || opts.encoding === 'utf8') {
+            return Buffer.from(contents).toString('utf8');
+          }
+          else {
+            return contents;
+          }
         }
       },
       'path': {
@@ -124,7 +132,7 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
         /**
          * data: { module: string, method: string, args: string[], callbackId: string }
          * 
-         * { type: 'rpc', module: 'fs', method: 'readFileSync', args: ['path/to/file'], callbackId: 'some-id' }
+         * { type: 'rpc', module: 'fs', method: 'readFile', args: ['path/to/file'], callbackId: 'some-id' }
          */
         console.log("RPC:", e.data);
         const module = (knownModules as any)[e.data.module];
@@ -200,12 +208,12 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
         </style>
         </head>
         <body>
-        <iframe id="pyret" frameBorder="0" width="100%" height="100%" src="https://pyret-horizon.herokuapp.com/editor#controlled=true"></iframe>
+        <iframe id="pyret" frameBorder="0" width="100%" height="100%" src="http://localhost:4999/editor#controlled=true"></iframe>
         <script>
         const pyret = document.getElementById('pyret');
         const vscode = acquireVsCodeApi();
         window.addEventListener('message', (e) => {
-          if(e.origin !== 'https://pyret-horizon.herokuapp.com') {
+          if(e.origin !== 'http://localhost:4999') {
             pyret.contentWindow.postMessage(e.data, "*");
           }
           else {
