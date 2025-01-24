@@ -1195,8 +1195,11 @@ $(function() {
   if(params["get"]["hideDefinitions"]) {
     $(".replMain").attr("aria-hidden", true).attr("tabindex", '-1');
   }
+  
+  const isControlled = params["controlled"];
+  const warnOnExit = ("warnOnExit" in params["get"]) && (params["get"]["warnOnExit"] !== "false");
 
-  if(!("warnOnExit" in params["get"]) || (params["get"]["warnOnExit"] !== "false")) {
+  if(!isControlled && !warnOnExit) {
     $(window).bind("beforeunload", function() {
       return "Because this page can load slowly, and you may have outstanding changes, we ask that you confirm before leaving the editor in case closing was an accident.";
     });

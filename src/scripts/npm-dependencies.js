@@ -46,18 +46,17 @@ if(!!google) {
 var fsWrapper = {
   fs: {
     readFile: async function(path, opts, callback) {
-      debugger;
       if(!window.MESSAGES.sendRpc) { throw new Error("Cannot readFile on the web"); }
       else {
         try {
-          const result = await window.MESSAGES.sendRpc('fs', 'readFileSync', [path]);
+          const result = await window.MESSAGES.sendRpc('fs', 'readFile', [path, opts]);
           return callback(undefined, result);
         }
         catch(e) {
           return callback(e);
         }
       }
-    }
+    },
   }
 }
 define("fs", [], function () { return fsWrapper.fs; });
