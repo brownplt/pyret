@@ -153,8 +153,7 @@
         const mime = extensiontypes[extension];
         if(!mime) { throw runtime.ffi.makeMessageException("Path did not have a png or jpeg extension"); }
         return runtime.pauseStack(function(restarter) {
-          fs.readFileBytes(path, {}, async (err, result) => {
-            window.THE_RESULT = result;
+          fs.readFile(path, {}, async (err, result) => {
             if(err) { restarter.error(runtime.ffi.throwMessageException(String(err))); }
             else {
               // create a data url from the result from readFile stored in result:
