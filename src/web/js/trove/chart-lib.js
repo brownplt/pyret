@@ -1275,7 +1275,8 @@ ${labelRow}`;
             currentRow[4*i + 2] = `<p>${legends[i]}</p>
 <p>x: <b>${r0}</b></p>
 <p>y: <b>${r1}</b></p>
-<p>y': <b>${r2}</b></p>`;
+<p>ŷ: <b>${r2}</b></p>
+<p>y - ŷ: <b>${r1 - r2}</b></p>`;
             currentRow[4*i + 3] = r1;
             currentRow[4*i + 4] = r2;
           }
