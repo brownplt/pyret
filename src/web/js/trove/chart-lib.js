@@ -111,6 +111,24 @@
 
   //////////////////////////////////////////////////////////////////////////////
 
+  function numSignificantDigits(n) {
+    let s = n.toString();
+    let decpart = s.replace(/^.*\./, '');
+    let decpartLength = decpart.length;
+    if (decpartLength === s.length) {
+      return 0;
+    }
+    return decpartLength;
+  }
+
+  function saneSubtract(m, n) {
+    let SD = Math.max(numSignificantDigits(m), numSignificantDigits(n));
+    let res = m - n;
+    return res.toFixed(SD);
+  }
+
+  //////////////////////////////////////////////////////////////////////////////
+
   function getNewWindow(xMinC, xMaxC, yMinC, yMaxC, numSamplesC) {
     return cases(RUNTIME.ffi.isOption, 'Option',
                  RUNTIME.string_to_number(xMinC.val()), {
@@ -1268,6 +1286,7 @@ ${labelRow}`;
             const r0 = toFixnum(row[0]);
             const r1 = toFixnum(row[1]);
             const r2 = toFixnum(row[2]);
+            const rdiff = saneSubtract(r1, r2);
 
             currentRow[0] = r0;
             currentRow[4*i + 1] = r1;
@@ -1276,7 +1295,7 @@ ${labelRow}`;
 <p>x: <b>${r0}</b></p>
 <p>y: <b>${r1}</b></p>
 <p>ŷ: <b>${r2}</b></p>
-<p>y - ŷ: <b>${r1 - r2}</b></p>`;
+<p>y - ŷ: <b>${rdiff}</b></p>`;
             currentRow[4*i + 3] = r1;
             currentRow[4*i + 4] = r2;
           }
