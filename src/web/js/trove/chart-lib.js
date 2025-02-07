@@ -112,19 +112,28 @@
   //////////////////////////////////////////////////////////////////////////////
 
   function numSignificantDigits(n) {
-    let s = n.toString();
-    let decpart = s.replace(/^.*\./, '');
-    let decpartLength = decpart.length;
-    if (decpartLength === s.length) {
+    let ns = n.toString();
+    let fracPart = ns.replace(/^.*\./, '');
+    let fracPartLength = fracPart.length;
+    if (fracPartLength === ns.length) {
       return 0;
     }
-    return decpartLength;
+    return fracPartLength;
+  }
+
+  function fourSig(n, targetSd = 4) {
+    if (targetSd > 4) { targetSd = 4; }
+    let sd = numSignificantDigits(n);
+    if (sd === 0) { return n; }
+    if (sd > targetSd) { n = n.toFixed(targetSd); }
+    let ns = n.toString();
+    ns = ns.replace(/0*$/, '');
+    return Number(ns);
   }
 
   function saneSubtract(m, n) {
-    let SD = Math.max(numSignificantDigits(m), numSignificantDigits(n));
-    let res = m - n;
-    return res.toFixed(SD);
+    let sd = Math.max(numSignificantDigits(m), numSignificantDigits(n));
+    return fourSig(m - n, sd);
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -1286,16 +1295,15 @@ ${labelRow}`;
             const r0 = toFixnum(row[0]);
             const r1 = toFixnum(row[1]);
             const r2 = toFixnum(row[2]);
-            const rdiff = saneSubtract(r1, r2);
 
             currentRow[0] = r0;
             currentRow[4*i + 1] = r1;
             const labelRow = `<p>label: <b>${r2}</b></p>`;
             currentRow[4*i + 2] = `<p>${legends[i]}</p>
 <p>x: <b>${r0}</b></p>
-<p>y: <b>${r1}</b></p>
-<p>ŷ: <b>${r2}</b></p>
-<p>y - ŷ: <b>${rdiff}</b></p>`;
+<p>y: <b>${fourSig(r1)}</b></p>
+<p>ŷ: <b>${fourSig(r2)}</b></p>
+<p>y - ŷ: <b>${saneSubtract(r1, r2)}</b></p>`;
             currentRow[4*i + 3] = r1;
             currentRow[4*i + 4] = r2;
           }
