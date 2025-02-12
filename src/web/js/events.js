@@ -253,6 +253,11 @@ function makeEvents(config) {
   });
 
   async function runInteraction(src, reportAnswer) {
+    // Because of a bug we introduced, a bunch of rooms ended up with states with null
+    // interactions. If left null, they will put the editor into an unrecoverable state.
+    // So, we simply run them as empty interactions, and rely on future
+    // runs/resets making things become eventually consistent
+    if(src === null) { src = ""; }
     interactionsSinceLastRun.push(src);
     if(!config.inControl) {
       $(".repl-prompt")
