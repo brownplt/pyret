@@ -1405,8 +1405,8 @@ $(function() {
     function on(handler) {
       handlers.push(handler);
     }
-    function trigger() {
-      handlers.forEach(h => h());
+    function trigger(v) {
+      handlers.forEach(h => h(v));
     }
     return [on, trigger];
   }
