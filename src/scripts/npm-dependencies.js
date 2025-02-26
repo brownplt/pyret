@@ -39,9 +39,7 @@ define("d3", [], function() { return d3; });
 d3_tip = require("d3-tip");
 define("d3-tip", [], function() { return d3_tip(d3); });
 
-if(!!google) {
-  define("google-charts", [], function() {return google;});
-}
+define("google-charts", [], function() { return window.google || { info: "Google charts library did not load" }; });
 
 var fsWrapper = {
   fs: {
