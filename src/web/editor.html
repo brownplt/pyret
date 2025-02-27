@@ -446,8 +446,8 @@ var GIT_BRANCH = "{{ &GIT_BRANCH }}";
 
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 <script>
-var apiKey = "";
-var appId = "";
+var apiKey = "{{ GOOGLE_API_KEY }}";
+var appId = "{{ GOOGLE_APP_ID }}";
 if(apiKey === "") { handleClientLoad(""); }
 function handleGoogLoad() {
   if(apiKey !== "") {
