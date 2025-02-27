@@ -67,7 +67,7 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
         'readFile': async (p: string, opts : ReadFileOpts) => {
           const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
           const contents = await vscode.workspace.fs.readFile(pathUri);
-          if(opts === 'utf8' || opts.encoding === 'utf8') {
+          if(opts && (opts === 'utf8' || opts.encoding === 'utf8')) {
             return Buffer.from(contents).toString('utf8');
           }
           else {
