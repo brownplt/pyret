@@ -97,7 +97,7 @@
                     tabindex="-1"
                     class="blueButton focusable">
               <span>▾</span>
-              <img class="logo" src="/img/pyret-logo.png" />
+              <img class="logo" src="{{ &BASE_URL }}/img/pyret-logo.png" />
             </button>
           </div>
           <ul id="bonniemenuContents" class="menuContents submenu" role="menu" aria-hidden="true"
@@ -464,7 +464,7 @@ console.log(window.performance.now());
 </script>
 <script src="{{ &BASE_URL }}/js/beforePyret.js"></script>
 <script>
-var APP_BASE_URL = "{{{ &BASE_URL }}}";
+var APP_BASE_URL = "{{ &BASE_URL }}";
 var CSRF_TOKEN = "{{{ CSRF_TOKEN }}}";
 $.ajaxPrefilter(function (options, originalOptions, jqXHR) {
   var a = document.createElement("a");
