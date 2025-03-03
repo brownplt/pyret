@@ -30,6 +30,12 @@ define("js-sha256", [], function () { return jssha256; });
 jsmd5 = require("js-md5");
 define("js-md5", [], function () { return jsmd5; });
 
+define("canvas", [], function() {
+  return {
+    createCanvas: function() { return document.createElement("canvas"); }
+  };
+});
+
 colorspaces = require("colorspaces");
 define("colorspaces", [], function () { return colorspaces; });
 
