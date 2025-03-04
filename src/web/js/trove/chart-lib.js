@@ -20,6 +20,25 @@
   'use strict';
   // Load google library via editor.html to avoid loading issues
 
+  function notImp(name) {
+    return RUNTIME.makeFunction(() => {
+      throw new RUNTIME.makeMessageException(name + " not available.")
+    })
+  }
+  if(!google.charts) {
+    return RUNTIME.makeModuleReturn(
+      {
+        'pie-chart': notImp('pie-chart'),
+        'bar-chart': notImp('bar-chart'),
+        'multi-bar-chart': notImp('multi-bar-chart'),
+        'histogram': notImp('histogram'),
+        'box-plot': notImp('box-plot'),
+        'plot': notImp('plot'),
+      }, 
+      { }
+    )
+  }
+
   //const google = _google.google;
   const isTrue = RUNTIME.isPyretTrue;
   const get = RUNTIME.getField;

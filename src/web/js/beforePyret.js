@@ -253,7 +253,7 @@ $(function() {
       gutterTooltip.className = "gutter-question-tooltip";
       gutterTooltip.innerText = "The use context line tells Pyret to load tools for a specific class context. It can be changed through the main Pyret menu. Most of the time you won't need to change this at all.";
       const gutterQuestion = document.createElement("img");
-      gutterQuestion.src = "/img/question.png";
+      gutterQuestion.src = window.APP_BASE_URL + "/img/question.png";
       gutterQuestion.className = "gutter-question";
       gutterQuestionWrapper.appendChild(gutterQuestion);
       gutterQuestionWrapper.appendChild(gutterTooltip);
@@ -427,6 +427,9 @@ $(function() {
     } else {
       return null;
     }
+  }).catch(e => {
+    console.error("storageAPI failed to load, proceeding without saving programs: ", e);
+    return null;
   });
 
   function setTitle(progName) {
@@ -1385,7 +1388,6 @@ $(function() {
 
   $(pyretLoad).on("error", function(e) {
     logFailureAndManualFetch(process.env.PYRET, e);
-    console.log(process.env);
     pyretLoad2.src = process.env.PYRET_BACKUP;
     pyretLoad2.type = "text/javascript";
     document.body.appendChild(pyretLoad2);
