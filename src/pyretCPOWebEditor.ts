@@ -64,6 +64,11 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
   ): Promise<void> {
     const knownModules = {
       'fs': {
+        'writeFile': async (p: string, buffer : Buffer) => {
+          const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
+          await vscode.workspace.fs.writeFile(pathUri, buffer);
+          return;
+        },
         'readFile': async (p: string, opts : ReadFileOpts) => {
           const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
           const contents = await vscode.workspace.fs.readFile(pathUri);
