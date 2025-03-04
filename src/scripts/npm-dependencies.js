@@ -50,6 +50,18 @@ define("google-charts", [], function() { return window.google || { info: "Google
 
 var fsWrapper = {
   fs: {
+    writeFile: async function(path, buffer, callback) {
+      if(!window.MESSAGES.sendRpc) { throw new Error("Cannot writeFile on the web"); }
+      else {
+        try {
+          const result = await window.MESSAGES.sendRpc('fs', 'writeFile', [path, buffer]);
+          return callback(undefined, result);
+        }
+        catch(e) {
+          return callback(e);
+        }
+      }
+    },
     readFile: async function(path, opts, callback) {
       if(!window.MESSAGES.sendRpc) { throw new Error("Cannot readFile on the web"); }
       else {
