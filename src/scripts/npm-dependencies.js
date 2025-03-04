@@ -32,7 +32,8 @@ define("js-md5", [], function () { return jsmd5; });
 
 define("canvas", [], function() {
   return {
-    createCanvas: function() { return document.createElement("canvas"); }
+    createCanvas: function() { return document.createElement("canvas"); },
+    Image: Image
   };
 });
 
