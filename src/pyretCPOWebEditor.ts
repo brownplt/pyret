@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { URI, Utils } from 'vscode-uri';
 import { Buffer } from 'buffer';
+import { render } from 'mustache';
 const code = require('../build/web/views/editor.html');
 
 // import * as fs from 'fs';
@@ -201,11 +202,12 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
    */
   private getHtmlForWebview(webview: vscode.Webview): string {
     const baseURI = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'build', 'web'));
-    console.log("baseURI: ", baseURI.toString());
     const templated = 
-      (code as string).replaceAll("{{ &BASE_URL }}", baseURI.toString())
-                      .replaceAll("{{&PYRET}}", webview.asWebviewUri(vscode.Uri.joinPath(baseURI, 'js', 'cpo-main.jarr')).toString());
-    console.log("temp: ", templated);
+      render((code as string), {
+        BASE_URL: baseURI.toString(),
+        PYRET: webview.asWebviewUri(vscode.Uri.joinPath(baseURI, 'js', 'cpo-main.jarr')).toString()
+      });
+    console.log("Templated: ", templated);
     return templated;
   }
 }
