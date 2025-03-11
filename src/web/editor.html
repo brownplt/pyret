@@ -49,9 +49,8 @@
         params[parts[0]] = parts[1];
       }
     });
-    if(params["hideDefinitions"]) {
-      document.body.classList.add("hideDefinitions");
-    }
+    if(params["hideDefinitions"]) { document.body.classList.add("hideDefinitions"); }
+    if(params["hideInteractions"]) { document.body.classList.add("hideInteractions"); }
     var footerStyle = params["footerStyle"] || "normal";
     switch (footerStyle) {
     case 'hide':

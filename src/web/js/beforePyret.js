@@ -1439,6 +1439,10 @@ $(function() {
     triggerOnLoad
   };
 
+  // We never want interactions to be hidden *when running code*.
+  // So hideInteractions should go away as soon as run is clicked
+  CPO.events.onRun(() => { document.body.classList.remove("hideInteractions"); });
+
   let initialState = params["get"]["initialState"];
 
   if (typeof acquireVsCodeApi === "function") {
