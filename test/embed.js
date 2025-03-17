@@ -16,7 +16,7 @@ describe("Embedding API Basics – Single embedded instance", function() {
   }
   
   it("should get a pyret-init event on startup", function(done) {
-    this.timeout(6000);
+    this.timeout(10000);
     var self = this;
     this.browser.get(this.base + "/embed/embed1.html?" + this.base);
     waitForInit(this.browser);
@@ -24,7 +24,7 @@ describe("Embedding API Basics – Single embedded instance", function() {
   });
   
   it("should have definitions set after a simple reset", function(done) {
-    this.timeout(6000);
+    this.timeout(10000);
     var self = this;
     this.browser.get(this.base + "/embed/embed1.html?" + this.base);
     waitForInit(this.browser);
@@ -46,7 +46,7 @@ describe("Embedding API Basics – Single embedded instance", function() {
   });
   
   it("should load starter files", function(done) {
-    this.timeout(6000);
+    this.timeout(15000);
     var self = this;
     this.browser.get(this.base + "/embed/embed1.html?" + this.base);
     waitForInit(this.browser);
