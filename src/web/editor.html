@@ -449,7 +449,13 @@ var GIT_BRANCH = "{{ &GIT_BRANCH }}";
 var apiKey = "{{ GOOGLE_API_KEY }}";
 var appId = "{{ GOOGLE_APP_ID }}";
 function handleGoogLoad() {
-  handleClientLoad(apiKey);
+  if((window.parent !== window) || (!window.location.protocol.startsWith("http"))) {
+    var publicOnly = true;
+  }
+  else {
+    var publicOnly = false;
+  }
+  handleClientLoad(apiKey, publicOnly);
 }
 </script>
 <!-- Google API Loader (For picker) -->

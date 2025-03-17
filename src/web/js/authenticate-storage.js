@@ -4,7 +4,7 @@ var sheetsAPIDeferred = Q.defer();
 window.storageAPI = storageAPIDeferred.promise;
 window.sheetsAPI = sheetsAPIDeferred.promise;
 
-window.handleClientLoad = function handleClientLoad(apiKey) {
+window.handleClientLoad = function handleClientLoad(apiKey, publicOnly) {
   if(!gapi || !gapi.client) {
     storageAPIDeferred.reject("no gapi.client");
     sheetsAPIDeferred.reject("no gapi.client");
@@ -12,7 +12,7 @@ window.handleClientLoad = function handleClientLoad(apiKey) {
     return;
   }
   gapi.client.setApiKey(apiKey);
-  var api = createProgramCollectionAPI("code.pyret.org", true);
+  var api = createProgramCollectionAPI("code.pyret.org", true, publicOnly);
 
   api.then(function(api) {
     storageAPIDeferred.resolve(api);
