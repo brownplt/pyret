@@ -1,15 +1,11 @@
-window.createProgramCollectionAPI = function createProgramCollectionAPI(collectionName, immediate) {
+window.createProgramCollectionAPI = function createProgramCollectionAPI(collectionName, immediate, publicOnly) {
   function DriveError(err) {
     this.err = err;
   }
   DriveError.prototype = Error.prototype;
   var drive;
-  var SCOPE = "https://www.googleapis.com/auth/drive.file "
-    + "https://spreadsheets.google.com/feeds "
-    + "https://www.googleapis.com/auth/drive.install";
   var FOLDER_MIME = "application/vnd.google-apps.folder";
   var BACKREF_KEY = "originalProgram";
-  var PUBLIC_LINK = "pubLink";
 
   function createAPI(baseCollection) {
     function makeSharedFile(googFileObject, fetchFromGoogle) {
@@ -110,14 +106,6 @@ window.createProgramCollectionAPI = function createProgramCollectionAPI(collecti
           return newFile.then(fileBuilder);
         },
         save: function(contents, newRevision) {
-          // NOTE(joe): newRevision: false will cause badRequest errors as of
-          // April 30, 2014
-          if(newRevision) {
-            var params = { 'newRevision': true };
-          }
-          else {
-            var params = {};
-          }
           const boundary = '-------314159265358979323846';
           const delimiter = "\r\n--" + boundary + "\r\n";
           const close_delim = "\r\n--" + boundary + "--";
@@ -183,9 +171,16 @@ window.createProgramCollectionAPI = function createProgramCollectionAPI(collecti
         });
       },
       getSharedFileById: function(id) {
-        var fromDrive = drive.files.get({fileId: id}, true).then(function(googFileObject) {
-          return makeSharedFile(googFileObject, true);
-        });
+        if(!publicOnly) {
+          var fromDrive = drive.files.get({fileId: id}, true).then(function(googFileObject) {
+            return makeSharedFile(googFileObject, true);
+          });
+        }
+        else {
+          var fromDriveQ = Q.defer();
+          fromDriveQ.reject("No shared files directly from client with publicOnly=true");
+          var fromDrive = fromDriveQ.promise;
+        }
         var fromServer = fromDrive.fail(function() {
           return Q($.get("/shared-file", {
             sharedProgramId: id
@@ -246,8 +241,18 @@ window.createProgramCollectionAPI = function createProgramCollectionAPI(collecti
       }
     };
 
-    var shareCollection = findOrCreateDirectory(collectionName + ".shared");
-    var cacheCollection = findOrCreateCacheDirectory(collectionName + ".compiled");
+    if(!publicOnly) {
+      var shareCollection = findOrCreateDirectory(collectionName + ".shared");
+      var cacheCollection = findOrCreateCacheDirectory(collectionName + ".compiled");
+    }
+    else {
+      var shareCollectionQ = Q.defer();
+      var cacheCollectionQ = Q.defer();
+      shareCollectionQ.reject("No share collection with publicOnly=true");
+      cacheCollectionQ.reject("No cache collection with publicOnly=true");
+      shareCollection = shareCollectionQ.promise;
+      cacheCollection = cacheCollectionQ.promise;
+    }
 
     return {
       api: api,
@@ -289,7 +294,14 @@ window.createProgramCollectionAPI = function createProgramCollectionAPI(collecti
 
   function initialize(wrappedDrive) {
     drive = wrappedDrive;
-    var baseCollection = findOrCreateDirectory(collectionName);
+    if(!publicOnly) {
+      var baseCollection = findOrCreateDirectory(collectionName);
+    }
+    else {
+      var baseCollectionQ = Q.defer();
+      baseCollectionQ.reject("No base collection with publicOnly=true");
+      var baseCollection = baseCollectionQ.promise;
+    }
     return createAPI(baseCollection);
   }
 
@@ -297,7 +309,8 @@ window.createProgramCollectionAPI = function createProgramCollectionAPI(collecti
   gwrap.load({name: 'drive',
               version: 'v2',
               reauth: {
-                immediate: immediate
+                immediate: immediate,
+                publicOnly
               },
               callback: function(drive) {
                 ret.resolve(initialize(drive));
