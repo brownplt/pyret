@@ -1,4 +1,3 @@
-language: ruby
 dist: jammy
 sudo: required
 env:

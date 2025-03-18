@@ -253,7 +253,7 @@ $(function() {
       gutterTooltip.className = "gutter-question-tooltip";
       gutterTooltip.innerText = "The use context line tells Pyret to load tools for a specific class context. It can be changed through the main Pyret menu. Most of the time you won't need to change this at all.";
       const gutterQuestion = document.createElement("img");
-      gutterQuestion.src = "/img/question.png";
+      gutterQuestion.src = window.APP_BASE_URL + "/img/question.png";
       gutterQuestion.className = "gutter-question";
       gutterQuestionWrapper.appendChild(gutterQuestion);
       gutterQuestionWrapper.appendChild(gutterTooltip);
@@ -427,6 +427,9 @@ $(function() {
     } else {
       return null;
     }
+  }).catch(e => {
+    console.error("storageAPI failed to load, proceeding without saving programs: ", e);
+    return null;
   });
 
   function setTitle(progName) {
@@ -1435,6 +1438,10 @@ $(function() {
     onLoad,
     triggerOnLoad
   };
+
+  // We never want interactions to be hidden *when running code*.
+  // So hideInteractions should go away as soon as run is clicked
+  CPO.events.onRun(() => { document.body.classList.remove("hideInteractions"); });
 
   let initialState = params["get"]["initialState"];
 

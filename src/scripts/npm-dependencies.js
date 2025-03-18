@@ -30,6 +30,13 @@ define("js-sha256", [], function () { return jssha256; });
 jsmd5 = require("js-md5");
 define("js-md5", [], function () { return jsmd5; });
 
+define("canvas", [], function() {
+  return {
+    createCanvas: function() { return document.createElement("canvas"); },
+    Image: Image
+  };
+});
+
 colorspaces = require("colorspaces");
 define("colorspaces", [], function () { return colorspaces; });
 
@@ -39,12 +46,22 @@ define("d3", [], function() { return d3; });
 d3_tip = require("d3-tip");
 define("d3-tip", [], function() { return d3_tip(d3); });
 
-if(!!google) {
-  define("google-charts", [], function() {return google;});
-}
+define("google-charts", [], function() { return window.google || { info: "Google charts library did not load" }; });
 
 var fsWrapper = {
   fs: {
+    writeFile: async function(path, buffer, callback) {
+      if(!window.MESSAGES.sendRpc) { throw new Error("Cannot writeFile on the web"); }
+      else {
+        try {
+          const result = await window.MESSAGES.sendRpc('fs', 'writeFile', [path, buffer]);
+          return callback(undefined, result);
+        }
+        catch(e) {
+          return callback(e);
+        }
+      }
+    },
     readFile: async function(path, opts, callback) {
       if(!window.MESSAGES.sendRpc) { throw new Error("Cannot readFile on the web"); }
       else {
