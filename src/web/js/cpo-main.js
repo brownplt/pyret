@@ -14,6 +14,10 @@
     },
     { "import-type": "dependency",
       protocol: "file",
+      args: ["../../../pyret/src/arr/compiler/locators/url.arr"]
+    },
+    { "import-type": "dependency",
+      protocol: "file",
       args: ["../arr/cpo.arr"]
     },
     { "import-type": "dependency",
@@ -54,7 +58,7 @@
     }
   },
   theModule: function(runtime, namespace, uri,
-                      compileLib, compileStructs, pyRepl, cpo, replUI, textHandlers,
+                      compileLib, compileStructs, pyRepl, urlLoc, cpo, replUI, textHandlers,
                       parsePyret, runtimeLib, loadLib, builtinModules, cpoBuiltins,
                       gdriveLocators, fileLocator, http, cpoModules, _modalPrompt,
                       rtLib) {
@@ -207,6 +211,9 @@
                 else if (protocol === "file" && window.MESSAGES) {
                   var fileLocatorConstructor = fileLocator.makeFileLocatorConstructor(window.MESSAGES.sendRpc, runtime, compileLib, compileStructs, parsePyret, builtinModules, cpo);
                   return fileLocatorConstructor.makeFileLocator(arr[0]);
+                }
+                else if (protocol === "url") {
+                  return runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(arr[0], replGlobals);
                 }
                 /*
                 else if (protocol === "js-http") {

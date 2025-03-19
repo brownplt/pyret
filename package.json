@@ -18,6 +18,7 @@
     "colorspaces": "0.1.4",
     "cookie-parser": "^1.4.6",
     "cookie-session": "^1.4.0",
+    "cross-fetch": "^4.1.0",
     "css-loader": "^3.6.0",
     "csurf": "^1.11.0",
     "d3": "^3.5.17",
