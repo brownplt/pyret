@@ -215,6 +215,10 @@
                 else if (protocol === "url") {
                   return runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(arr[0], replGlobals);
                 }
+                else if (protocol === "url-file") {
+                  const fullUrl = arr[0] + "/" + arr[1];
+                  return runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(fullUrl, replGlobals);
+                }
                 /*
                 else if (protocol === "js-http") {
                   // TODO: THIS IS WRONG with the new locator system
