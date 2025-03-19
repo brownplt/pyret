@@ -176,7 +176,7 @@
 
     }
 
-    function makeFindModule() {
+    function makeFindModule(urlFileMode) {
       // The locatorCache memoizes locators for the duration of an
       // interactions run
       var locatorCache = {};
@@ -217,7 +217,33 @@
                 }
                 else if (protocol === "url-file") {
                   const fullUrl = arr[0] + "/" + arr[1];
-                  return runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(fullUrl, replGlobals);
+                  switch(urlFileMode) {
+                    case "all-remote":
+                      return runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(fullUrl, replGlobals);
+                    case "all-local":
+                      var fileLocatorConstructor = fileLocator.makeFileLocatorConstructor(window.MESSAGES.sendRpc, runtime, compileLib, compileStructs, parsePyret, builtinModules, cpo);
+                      return fileLocatorConstructor.makeFileLocator(arr[1]);
+                    case "local-if-present":
+                      return runtime.pauseStack(async (restarter) => {
+                        const exists = await window.MESSAGES.sendRpc('fs', 'exists', [arr[1]]);
+                        if(exists) {
+                          return runtime.runThunk(() => {
+                            var fileLocatorConstructor = fileLocator.makeFileLocatorConstructor(window.MESSAGES.sendRpc, runtime, compileLib, compileStructs, parsePyret, builtinModules, cpo);
+                            return fileLocatorConstructor.makeFileLocator(arr[1]);
+                          }, (result) => {
+                            if(runtime.isSuccessResult(result)) {
+                              restarter.resume(result.result);
+                            }
+                            else {
+                              restarter.error(result.error);
+                            }
+                          });
+                        }
+                        else {
+                          return restarter.resume(runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(fullUrl, replGlobals));
+                        }
+                      });
+                  }
                 }
                 /*
                 else if (protocol === "js-http") {
@@ -271,12 +297,13 @@
     var defaultOptions = gmf(compileStructs, "default-compile-options");
 
     var replP = Q.defer();
+    const urlFileMode = window.URL_FILE_MODE || "all-remote";
     return runtime.safeCall(function() {
         return gmf(cpo, "make-repl").app(
             builtinsForPyret,
             pyRuntime,
             pyRealm,
-            runtime.makeFunction(makeFindModule));
+            runtime.makeFunction(() => makeFindModule(urlFileMode)));
       }, function(repl) {
         var jsRepl = {
           runtime: runtime.getField(pyRuntime, "runtime").val,
