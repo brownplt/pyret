@@ -15,7 +15,8 @@
 	"activationEvents": [],
 	"repository": "https://github.com/jpolitz/pyret-parley-vscode",
 	"files": [
-		"dist/web/**/*"
+		"dist/web/**/*",
+		"build/web/js/*.js"
 	],
 	"browser": "./dist/web/extension.js",
 	"contributes": {
@@ -32,6 +33,9 @@
 		]
 	},
 	"scripts": {
+		"fetch-pyret": "git clone --single-branch -b horizon --depth 1 https://github.com/brownplt/code.pyret.org; cd code.pyret.org; npm install; make link-pyret; npm run build",
+		"link-pyret": "ln -s code.pyret.org/build build",
+		"postinstall": "npm run fetch-pyret; npm run link-pyret",
 		"vscode:prepublish": "npm run compile",
 		"compile": "webpack --mode production"
 	},
