@@ -45,7 +45,12 @@ const webExtensionConfig = {
 			use: [{
 				loader: 'ts-loader'
 			}]
-		}]
+		},
+		{
+			test: /\.html/,
+			type: 'asset/source'
+		}
+		]
 	},
 	plugins: [
 		new webpack.optimize.LimitChunkCountPlugin({

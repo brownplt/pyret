@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { URI, Utils } from 'vscode-uri';
 import { Buffer } from 'buffer';
+import { render } from 'mustache';
+const code = require('../build/web/views/editor.html');
+
 // import * as fs from 'fs';
 // import * as path from 'path';
 
@@ -62,6 +65,11 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
   ): Promise<void> {
     const knownModules = {
       'fs': {
+        'writeFile': async (p: string, buffer : Buffer) => {
+          const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
+          await vscode.workspace.fs.writeFile(pathUri, buffer);
+          return;
+        },
         'readFile': async (p: string, opts : ReadFileOpts) => {
           const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
           const contents = await vscode.workspace.fs.readFile(pathUri);
@@ -193,36 +201,14 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
    * Get the static html used for the editor webviews.
    */
   private getHtmlForWebview(webview: vscode.Webview): string {
-    return `
-        <!doctype HTML>
-        <html>
-        <head>
-        <style type="text/css">
-            body, html
-            {
-                margin: 0;
-                padding: 0;
-                height: 100%;
-                border: none;
-            }
-        </style>
-        </head>
-        <body>
-        <iframe id="pyret" frameBorder="0" width="100%" height="100%" src="https://pyret-horizon.herokuapp.com/editor#controlled=true"></iframe>
-        <script>
-        const pyret = document.getElementById('pyret');
-        const vscode = acquireVsCodeApi();
-        window.addEventListener('message', (e) => {
-          if(e.origin !== 'https://pyret-horizon.herokuapp.com') {
-            pyret.contentWindow.postMessage(e.data, "*");
-          }
-          else {
-            vscode.postMessage(e.data, '*');
-          }
-        });
-        </script>
-        </body>
-        </html>
-        `;
+    const baseURI = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'build', 'web'));
+    const templated = 
+      render((code as string), {
+        BASE_URL: baseURI.toString(),
+        PYRET: webview.asWebviewUri(vscode.Uri.joinPath(baseURI, 'js', 'cpo-main.jarr')).toString(),
+        HASH_OPTIONS: "#footerStyle=hide&hideInteractions=true"
+      });
+    console.log("Templated: ", templated);
+    return templated;
   }
 }
