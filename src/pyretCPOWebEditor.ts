@@ -210,6 +210,11 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
    * Get the static html used for the editor webviews.
    */
   private getHtmlForWebview(webview: vscode.Webview): string {
+    const config = vscode.workspace.getConfiguration(
+      'pyret-parley'
+    );
+    console.log("Config: ", config);
+    let urlFileMode = config.get('urlFileMode');
     const baseURI = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'web', 'build', 'web'));
     console.log("baseURI: ", baseURI);
     const templated = 
@@ -217,7 +222,7 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
         BASE_URL: baseURI.toString(),
         PYRET: webview.asWebviewUri(vscode.Uri.joinPath(baseURI, 'js', 'cpo-main.jarr')).toString(),
         HASH_OPTIONS: "#footerStyle=hide&hideInteractions=true",
-        URL_FILE_MODE: "local-if-present"
+        URL_FILE_MODE: urlFileMode
       });
     console.log("Templated: ", templated);
     return templated;
