@@ -167,6 +167,12 @@
                 });
               });
             }
+            else if (protocol === "url") {
+              return arr[0];
+            }
+            else if (protocol === "url-file") {
+              return arr[0] + "/" + arr[1];
+            }
             else {
               console.error("Unknown import: ", dependency);
               return protocol + "://" + arr.join(":");
