@@ -11,6 +11,7 @@
 
 const path = require('path');
 const webpack = require('webpack');
+const CopyPlugin = require('copy-webpack-plugin');
 
 /** @type WebpackConfig */
 const webExtensionConfig = {
@@ -59,6 +60,19 @@ const webExtensionConfig = {
 		new webpack.ProvidePlugin({
 			process: 'process/browser', // provide a shim for the global `process` variable
 		}),
+		new CopyPlugin({
+			patterns: [
+				{
+					from: path.resolve(__dirname, "build"),
+					to: "./build",
+					globOptions: {
+						ignore: ["**/snap/**", "**/*.gz*"],
+					},
+					// Terser skip this file for minification
+					info: { minimized: true },
+				},
+			]
+		})
 	],
 	externals: {
 		'vscode': 'commonjs vscode', // ignored because it doesn't exist

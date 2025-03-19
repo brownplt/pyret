@@ -15,9 +15,7 @@
 	"activationEvents": [],
 	"repository": "https://github.com/jpolitz/pyret-parley-vscode",
 	"files": [
-		"dist/web/**/*",
-		"build/web/js/*.js",
-		"build/web/views/*"
+		"dist/web/**/*"
 	],
 	"browser": "./dist/web/extension.js",
 	"contributes": {
@@ -47,6 +45,7 @@
 		"@typescript-eslint/eslint-plugin": "^7.14.0",
 		"@typescript-eslint/parser": "^7.14.0",
 		"@vscode/test-web": "^0.0.65",
+		"copy-webpack-plugin": "^13.0.0",
 		"eslint": "^8.26.0",
 		"generator-code": "^1.11.5",
 		"ts-loader": "^9.5.2",

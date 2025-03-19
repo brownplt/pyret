@@ -201,7 +201,8 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
    * Get the static html used for the editor webviews.
    */
   private getHtmlForWebview(webview: vscode.Webview): string {
-    const baseURI = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'build', 'web'));
+    const baseURI = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'web', 'build', 'web'));
+    console.log("baseURI: ", baseURI);
     const templated = 
       render((code as string), {
         BASE_URL: baseURI.toString(),
