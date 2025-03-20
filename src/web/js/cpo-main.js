@@ -303,6 +303,7 @@
     var defaultOptions = gmf(compileStructs, "default-compile-options");
 
     var replP = Q.defer();
+    debugger;
     const urlFileMode = window.URL_FILE_MODE || "all-remote";
     return runtime.safeCall(function() {
         return gmf(cpo, "make-repl").app(
