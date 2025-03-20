@@ -160,6 +160,9 @@ window.createProgramCollectionAPI = function createProgramCollectionAPI(collecti
       getFileById: function(id) {
         return drive.files.get({fileId: id}).then(fileBuilder);
       },
+      makeUrlFile: function(url) {
+        return makeUrlFile(url);
+      },
       getFileByName: function(name) {
         return this.getAllFiles().then(function(files) {
           return files.filter(function(f) { return f.getName() === name; });
@@ -316,4 +319,38 @@ window.createProgramCollectionAPI = function createProgramCollectionAPI(collecti
                 ret.resolve(initialize(drive));
               }});
   return ret.promise;
+}
+
+function makeUrlFile(url) {
+  const p = Q.defer();
+  p.resolve({
+    shared: true,
+    getOriginal: function() {
+      throw new Error("Cannot getOriginal for a file created from a URL")
+    },
+    getContents: function() {
+      const ans = Q.defer();
+      fetch(url).then(async function(contents) {
+        ans.resolve(await contents.text());
+      })
+      .catch(function(err) {
+        ans.reject(err);
+      });
+      return ans.promise;
+    },
+    getName: function() {
+      const lastSlash = String(url).lastIndexOf("/");
+      if(lastSlash === -1) {
+        return url;
+      }
+      return url.slice(lastSlash + 1);
+    },
+    getModifiedTime: function() {
+      return new Date();
+    },
+    getUniqueId: function() {
+      return url;
+    }
+  });
+  return p.promise;
 }
