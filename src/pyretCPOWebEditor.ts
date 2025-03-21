@@ -220,7 +220,7 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
     const templated = 
       render((code as string), {
         BASE_URL: baseURI.toString(),
-        PYRET: webview.asWebviewUri(vscode.Uri.joinPath(baseURI, 'js', 'cpo-main.jarr')).toString(),
+        PYRET: webview.asWebviewUri(vscode.Uri.joinPath(baseURI, 'js', 'cpo-main.jarr.js')).toString(),
         HASH_OPTIONS: "#footerStyle=hide&hideInteractions=true",
         URL_FILE_MODE: urlFileMode
       });
