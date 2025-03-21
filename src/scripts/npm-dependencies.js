@@ -37,6 +37,9 @@ define("canvas", [], function() {
   };
 });
 
+crossfetch = require("cross-fetch");
+define("cross-fetch", [], function() { return crossfetch; });
+
 colorspaces = require("colorspaces");
 define("colorspaces", [], function () { return colorspaces; });
 

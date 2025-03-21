@@ -387,50 +387,56 @@ $(function() {
     If the url does have a #program or #share, the promise is for the
     corresponding object.
   */
-  var initialProgram = storageAPI.then(function(api) {
-    var programLoad = null;
-    if(params["get"] && params["get"]["program"]) {
-      enableFileOptions();
-      programLoad = api.getFileById(params["get"]["program"]);
-      programLoad.then(function(p) { showShareContainer(p); });
-    }
-    else if(params["get"] && params["get"]["share"]) {
-      logger.log('shared-program-load',
-        {
-          id: params["get"]["share"]
-        });
-      programLoad = api.getSharedFileById(params["get"]["share"]);
-      programLoad.then(function(file) {
-        // NOTE(joe): If the current user doesn't own or have access to this file
-        // (or isn't logged in) this will simply fail with a 401, so we don't do
-        // any further permission checking before showing the link.
-        file.getOriginal().then(function(response) {
-          console.log("Response for original: ", response);
-          var original = $("#open-original").show().off("click");
-          var id = response.result.value;
-          original.removeClass("hidden");
-          original.click(function() {
-            window.open(window.APP_BASE_URL + "/editor#program=" + id, "_blank");
+  let initialProgram;
+  if(params["get"] && params["get"]["shareurl"]) {
+    initialProgram = makeUrlFile(params["get"]["shareurl"]);
+  }
+  else {
+    initialProgram = storageAPI.then(function(api) {
+      var programLoad = null;
+      if(params["get"] && params["get"]["program"]) {
+        enableFileOptions();
+        programLoad = api.getFileById(params["get"]["program"]);
+        programLoad.then(function(p) { showShareContainer(p); });
+      }
+      else if(params["get"] && params["get"]["share"]) {
+        logger.log('shared-program-load',
+          {
+            id: params["get"]["share"]
+          });
+        programLoad = api.getSharedFileById(params["get"]["share"]);
+        programLoad.then(function(file) {
+          // NOTE(joe): If the current user doesn't own or have access to this file
+          // (or isn't logged in) this will simply fail with a 401, so we don't do
+          // any further permission checking before showing the link.
+          file.getOriginal().then(function(response) {
+            console.log("Response for original: ", response);
+            var original = $("#open-original").show().off("click");
+            var id = response.result.value;
+            original.removeClass("hidden");
+            original.click(function() {
+              window.open(window.APP_BASE_URL + "/editor#program=" + id, "_blank");
+            });
           });
         });
-      });
-    }
-    else {
-      programLoad = null;
-    }
-    if(programLoad) {
-      programLoad.fail(function(err) {
-        console.error(err);
-        window.stickError("The program failed to load.");
-      });
-      return programLoad;
-    } else {
+      }
+      else {
+        programLoad = null;
+      }
+      if(programLoad) {
+        programLoad.fail(function(err) {
+          console.error(err);
+          window.stickError("The program failed to load.");
+        });
+        return programLoad;
+      } else {
+        return null;
+      }
+    }).catch(e => {
+      console.error("storageAPI failed to load, proceeding without saving programs: ", e);
       return null;
-    }
-  }).catch(e => {
-    console.error("storageAPI failed to load, proceeding without saving programs: ", e);
-    return null;
-  });
+    });
+  }
 
   function setTitle(progName) {
     document.title = progName + " - code.pyret.org";
@@ -1326,7 +1332,8 @@ $(function() {
 
   });
 
-  programLoaded.fail(function() {
+  programLoaded.fail(function(error) {
+    console.error("Program contents did not load: ", error);
     CPO.documents.set("definitions://", CPO.editor.cm.getDoc());
   });
 
