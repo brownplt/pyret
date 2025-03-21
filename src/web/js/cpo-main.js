@@ -219,20 +219,32 @@
                   return fileLocatorConstructor.makeFileLocator(arr[0]);
                 }
                 else if (protocol === "url") {
+                  fetch(arr[0]).then(async (response) => {
+                    CPO.documents.set(arr[0], new CodeMirror.Doc(await response.text(), "pyret"));
+                  });
                   return runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(arr[0], replGlobals);
                 }
                 else if (protocol === "url-file") {
                   const fullUrl = arr[0] + "/" + arr[1];
                   switch(urlFileMode) {
                     case "all-remote":
+                      fetch(fullUrl).then(async (response) => {
+                        CPO.documents.set(fullUrl, new CodeMirror.Doc(await response.text(), "pyret"));
+                      });
                       return runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(fullUrl, replGlobals);
                     case "all-local":
+                      window.MESSAGES.sendRpc('fs', 'readFile', [fullUrl, 'utf8']).then((contents) => {
+                        CPO.documents.set(fullUrl, new CodeMirror.Doc(contents, "pyret"));
+                      });
                       var fileLocatorConstructor = fileLocator.makeFileLocatorConstructor(window.MESSAGES.sendRpc, runtime, compileLib, compileStructs, parsePyret, builtinModules, cpo);
                       return fileLocatorConstructor.makeFileLocator(arr[1]);
                     case "local-if-present":
                       return runtime.pauseStack(async (restarter) => {
                         const exists = await window.MESSAGES.sendRpc('fs', 'exists', [arr[1]]);
                         if(exists) {
+                          window.MESSAGES.sendRpc('fs', 'readFile', [fullUrl, 'utf8']).then((contents) => {
+                            CPO.documents.set(fullUrl, new CodeMirror.Doc(contents, "pyret"));
+                          });
                           return runtime.runThunk(() => {
                             var fileLocatorConstructor = fileLocator.makeFileLocatorConstructor(window.MESSAGES.sendRpc, runtime, compileLib, compileStructs, parsePyret, builtinModules, cpo);
                             return fileLocatorConstructor.makeFileLocator(arr[1]);
@@ -246,6 +258,9 @@
                           });
                         }
                         else {
+                          fetch(fullUrl).then(async (response) => {
+                            CPO.documents.set(fullUrl, new CodeMirror.Doc(await response.text(), "pyret"));
+                          });
                           return restarter.resume(runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(fullUrl, replGlobals));
                         }
                       });
