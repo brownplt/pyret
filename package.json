@@ -2,7 +2,7 @@
 	"name": "pyret-parley",
 	"displayName": "(Experimental) Pyret Interactive Editor for VSCode",
 	"description": "An interactive Pyret mode",
-	"version": "0.20.0",
+	"version": "0.21.0",
 	"publisher": "PyretProgrammingLanguage",
 	"private": true,
 	"license": "Apache-2.0",
@@ -37,7 +37,11 @@
 					"type": "string",
 					"default": "all-remote",
 					"scope": "resource",
-					"enum": ["all-remote", "all-local", "local-if-present"],
+					"enum": [
+						"all-remote",
+						"all-local",
+						"local-if-present"
+					],
 					"markdownEnumDescriptions": [
 						"Always load `url-file()` imports from the URL",
 						"Always load `url-file()` imports from the local filesystem",
