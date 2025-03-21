@@ -8,6 +8,6 @@
 		"strict": true,
 		"rootDir": "src",
 	},
-	"exclude": ["node_modules", ".vscode-test", "media", "cpo", "build"],
+	"exclude": ["node_modules", ".vscode-test", "media", "code.pyret.org", "build"],
 	
 }

@@ -2,7 +2,7 @@
 	"name": "pyret-parley",
 	"displayName": "(Experimental) Pyret Interactive Editor for VSCode",
 	"description": "An interactive Pyret mode",
-	"version": "0.19.0",
+	"version": "0.20.0",
 	"publisher": "PyretProgrammingLanguage",
 	"private": true,
 	"license": "Apache-2.0",
@@ -29,7 +29,24 @@
 					}
 				]
 			}
-		]
+		],
+		"configuration": {
+			"title": "Pyret",
+			"properties": {
+				"pyret-parley.urlFileMode": {
+					"type": "string",
+					"default": "all-remote",
+					"scope": "resource",
+					"enum": ["all-remote", "all-local", "local-if-present"],
+					"markdownEnumDescriptions": [
+						"Always load `url-file()` imports from the URL",
+						"Always load `url-file()` imports from the local filesystem",
+						"Load `url-file()` imports from the local filesystem if they exist, otherwise from the URL"
+					],
+					"description": "Controls how `url-file()` imports are resolved"
+				}
+			}
+		}
 	},
 	"scripts": {
 		"fetch-pyret": "git clone --single-branch -b horizon --depth 1 https://github.com/brownplt/code.pyret.org; cd code.pyret.org; npm install; make link-pyret; npm run build",

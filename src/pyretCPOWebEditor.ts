@@ -70,6 +70,15 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
           await vscode.workspace.fs.writeFile(pathUri, buffer);
           return;
         },
+        'exists': async (p: string) => {
+          const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
+          try {
+            await vscode.workspace.fs.stat(pathUri);
+            return true;
+          } catch(e) {
+            return false;
+          }
+        },
         'readFile': async (p: string, opts : ReadFileOpts) => {
           const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
           const contents = await vscode.workspace.fs.readFile(pathUri);
@@ -201,13 +210,19 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
    * Get the static html used for the editor webviews.
    */
   private getHtmlForWebview(webview: vscode.Webview): string {
+    const config = vscode.workspace.getConfiguration(
+      'pyret-parley'
+    );
+    console.log("Config: ", config);
+    let urlFileMode = config.get('urlFileMode');
     const baseURI = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'web', 'build', 'web'));
     console.log("baseURI: ", baseURI);
     const templated = 
       render((code as string), {
         BASE_URL: baseURI.toString(),
         PYRET: webview.asWebviewUri(vscode.Uri.joinPath(baseURI, 'js', 'cpo-main.jarr')).toString(),
-        HASH_OPTIONS: "#footerStyle=hide&hideInteractions=true"
+        HASH_OPTIONS: "#footerStyle=hide&hideInteractions=true",
+        URL_FILE_MODE: urlFileMode
       });
     console.log("Templated: ", templated);
     return templated;
