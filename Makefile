@@ -366,6 +366,7 @@ $(CPOMAIN): $(BUNDLED_DEPS) $(TROVE_JS) $(TROVE_ARR) $(WEBJS) src/web/js/*.js sr
 # NOTE(joe): Need to do .gz.js because Firefox doesn't like gzipped JS having a
 # non-.js extension.
 $(CPOGZ): $(CPOMAIN)
+	cp $(CPOMAIN) $(CPOMAIN).js
 	npm exec -- uglifyjs --compress -o $(CPOMAIN).min -- $(CPOMAIN)
 	gzip -c -f $(CPOMAIN).min > $(CPOGZ)
 
