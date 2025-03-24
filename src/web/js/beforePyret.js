@@ -1205,7 +1205,7 @@ $(function() {
     $(".replMain").attr("aria-hidden", true).attr("tabindex", '-1');
   }
   
-  const isControlled = params["controlled"];
+  const isControlled = params["get"]["controlled"];
   const warnOnExit = ("warnOnExit" in params["get"]) && (params["get"]["warnOnExit"] !== "false");
 
   if(!isControlled && !warnOnExit) {
@@ -1395,7 +1395,7 @@ $(function() {
   }
 
   $(pyretLoad).on("error", function(e) {
-    logFailureAndManualFetch(process.env.PYRET, e);
+    logFailureAndManualFetch(window.PYRET, e);
     pyretLoad2.src = process.env.PYRET_BACKUP;
     pyretLoad2.type = "text/javascript";
     document.body.appendChild(pyretLoad2);
