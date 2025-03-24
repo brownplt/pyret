@@ -1206,9 +1206,10 @@ $(function() {
   }
   
   const isControlled = params["get"]["controlled"];
-  const warnOnExit = ("warnOnExit" in params["get"]) && (params["get"]["warnOnExit"] !== "false");
+  const hasWarnOnExit = ("warnOnExit" in params["get"]);
+  const skipWarning = hasWarnOnExit && (params["get"]["warnOnExit"] === "false");
 
-  if(!isControlled && !warnOnExit) {
+  if(!isControlled && !skipWarning) {
     $(window).bind("beforeunload", function() {
       return "Because this page can load slowly, and you may have outstanding changes, we ask that you confirm before leaving the editor in case closing was an accident.";
     });
