@@ -59,6 +59,14 @@ COPY_LIB_CSS := $(patsubst lib/css/%.css,build/web/css/%.css,$(wildcard lib/css/
 build/web/css/%.css: lib/css/%.css
 	cp $< $@
 
+COPY_LIB_CSS := $(patsubst lib/css/%.css,build/web/css/%.css,$(wildcard lib/css/*.css))
+build/web/css/%.css: lib/css/%.css
+	cp $< $@
+
+COPY_LIB_IMAGES := $(patsubst lib/css/images/%.png,build/web/css/images/%.png,$(wildcard lib/css/images/*.png))
+build/web/css/images/%.png: lib/css/images/%.png
+	cp $< $@
+
 COPY_THEMES := $(patsubst src/web/%.css,build/web/%.css,$(wildcard src/web/css/themes/*.css))
 
 build/web/css/themes/%.css: src/web/css/themes/%.css
@@ -293,6 +301,7 @@ WEBJS = build/web/js
 WEBJSGOOG = build/web/js/google-apis
 WEBCSS = build/web/css
 WEBTHEMES = build/web/css/themes
+WEBIMAGES = build/web/css/images
 WEBFONTS = $(WEBCSS)/fonts
 WEBIMG = build/web/img
 WEBARR = build/web/arr
@@ -312,6 +321,9 @@ $(WEBJSGOOG):
 $(WEBCSS):
 	@$(call MKDIR,$(WEBCSS))
 
+$(WEBIMAGES):
+	@$(call MKDIR,$(WEBIMAGES))
+
 $(WEBTHEMES):
 	@$(call MKDIR,$(WEBTHEMES))
 
@@ -324,9 +336,9 @@ $(WEBIMG):
 $(WEBARR):
 	@$(call MKDIR,$(WEBARR))
 
-web-local: $(WEB) $(WEBV) $(WEBJS) $(WEBJSGOOG) $(WEBCSS) $(WEBTHEMES) $(WEBFONTS) $(WEBIMG) $(WEBARR) $(OUT_HTML) $(COPY_HTML) $(OUT_CSS) $(COPY_CSS) $(COPY_LIB_CSS) $(COPY_THEMES) $(COPY_FONTS) $(COPY_JS) $(COPY_LIB_JS) $(COPY_ARR) $(COPY_GIF) $(COPY_SVG) $(COPY_PNG) $(MISC_JS) $(MISC_CSS) $(MISC_IMG) $(COPY_NEW_CSS) $(COPY_NEW_JS) $(COPY_GOOGLE_JS) $(CPOMAIN) $(CPOGZ) build/web/js/editor-misc.min.js build/web/js/snap build/web/js/transpile.xml
+web-local: $(WEB) $(WEBV) $(WEBJS) $(WEBJSGOOG) $(WEBCSS) $(WEBTHEMES) $(WEBFONTS) $(WEBIMG) $(WEBARR) $(OUT_HTML) $(COPY_HTML) $(OUT_CSS) $(COPY_CSS) $(COPY_LIB_CSS) $(COPY_THEMES) $(COPY_FONTS) $(COPY_JS) $(COPY_LIB_JS) $(COPY_LIB_IMAGES) $(COPY_ARR) $(COPY_GIF) $(COPY_SVG) $(COPY_PNG) $(MISC_JS) $(MISC_CSS) $(MISC_IMG) $(COPY_NEW_CSS) $(COPY_NEW_JS) $(COPY_GOOGLE_JS) $(CPOMAIN) $(CPOGZ) build/web/js/editor-misc.min.js build/web/js/snap build/web/js/transpile.xml
 
-web: $(WEB) $(WEBV) $(WEBJS) $(WEBJSGOOG) $(WEBCSS) $(WEBTHEMES) $(WEBFONTS) $(WEBIMG) $(WEBARR) $(OUT_HTML) $(COPY_HTML) $(OUT_CSS) $(COPY_CSS) $(COPY_LIB_CSS) $(COPY_THEMES) $(COPY_FONTS) $(COPY_JS) $(COPY_LIB_JS) $(COPY_ARR) $(COPY_GIF) $(COPY_SVG) $(COPY_PNG) $(MISC_JS) $(MISC_CSS) $(MISC_IMG) $(COPY_NEW_CSS) $(COPY_NEW_JS) $(COPY_GOOGLE_JS) build/web/js/editor-misc.min.js build/web/js/snap build/web/js/transpile.xml
+web: $(WEB) $(WEBV) $(WEBJS) $(WEBJSGOOG) $(WEBCSS) $(WEBTHEMES) $(WEBFONTS) $(WEBIMG) $(WEBARR) $(OUT_HTML) $(COPY_HTML) $(OUT_CSS) $(COPY_CSS) $(COPY_LIB_CSS) $(COPY_THEMES) $(COPY_FONTS) $(COPY_JS) $(COPY_LIB_JS) $(COPY_LIB_IMAGES) $(COPY_ARR) $(COPY_GIF) $(COPY_SVG) $(COPY_PNG) $(MISC_JS) $(MISC_CSS) $(MISC_IMG) $(COPY_NEW_CSS) $(COPY_NEW_JS) $(COPY_GOOGLE_JS) build/web/js/editor-misc.min.js build/web/js/snap build/web/js/transpile.xml
 
 link-pyret:
 	ln -s node_modules/pyret-lang pyret
