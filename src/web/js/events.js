@@ -252,6 +252,11 @@ function makeEvents(config) {
     }, `Ran the last interaction, ${interaction}.`, state);
   });
 
+  async function clearInteractions(state) {
+    interactionsSinceLastRun = [];
+    $("#output").empty();
+  }
+
   async function runInteraction(src, reportAnswer) {
     // Because of a bug we introduced, a bunch of rooms ended up with states with null
     // interactions. If left null, they will put the editor into an unrecoverable state.
@@ -394,6 +399,9 @@ function makeEvents(config) {
         messageQueue = [];
         stop();
         addMessage({ process: async () => { return runProgram(state); } });
+        break;
+      case "clearInteractions":
+        addMessage({ process: async () => { return clearInteractions(state); } });
         break;
       case "setContents":
         addMessage({ process: async () => { return editorUpdate(message.text); } });
