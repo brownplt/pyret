@@ -283,10 +283,14 @@ function makeEvents(config) {
 
     if(typeof reportAnswer === 'string') {
       const state = { ...getCurrentState(config), replContents: "" };
+      const elts = $("#output").children(".echo-container").last().nextAll();
+      const texts = elts.map((_, e) => $(e).text()).get();
+      const htmls = elts.map((_, e) => $(e).html()).get();
+      const textResult = JSON.stringify({ texts, htmls });
       comm.sendEvent({
         type: "interactionResult",
         reportAnswer,
-        textResult: $("#output").children().last().text(),
+        textResult,
       }, `Reporting an interaction by request, ${src} ${reportAnswer}.`, state);
     }
   }
