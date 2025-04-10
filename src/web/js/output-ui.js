@@ -1429,7 +1429,10 @@
           });
         } else if (jsnums.isRoughnum(num)) {
           ariaText = num.n.toString() + ', roughly';
-          outText = $('<span>').addClass('replTextOutput roughNumber').text(num.toString());
+          var roughnumStr = num.toString().slice(1);
+          outText = $('<span>').addClass('replTextOutput roughNumber');
+          outText.append($('<span>').addClass('cm-roughnum-start').text('~'));
+          outText.append($('<span>').addClass('cm-roughnum').text(roughnumStr));
         } else {
           ariaText = num.toString();
           outText = renderText(sooper(renderers, "number", num));
