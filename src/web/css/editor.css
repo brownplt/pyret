@@ -1547,14 +1547,14 @@ code div {
 .warning-upper {
   animation-name: arrow-upper-bounce;
   background-image:
-      url('/img/up-arrow.png'),
+      url('../img/up-arrow.png'),
       linear-gradient(to bottom,  var(--warning-gradient-1) 0%,var(--warning-gradient-2) 50%);
 }
 
 .warning-lower {
   animation-name: arrow-lower-bounce;
   background-image:
-      url('/img/down-arrow.png'),
+      url('../img/down-arrow.png'),
       linear-gradient(to top,  var(--warning-gradient-1) 0%,var(--warning-gradient-2) 50%);
 }
 
@@ -1963,7 +1963,7 @@ body.smallHeader #run-dropdown-content {
   display: block;
   min-height: 3em;
   min-width: 3em;
-  background-image: url(/img/pyret-spin.gif);
+  background-image: url(../img/pyret-spin.gif);
   background-size: contain;
   background-repeat: no-repeat;
   flex: 1;

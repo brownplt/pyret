@@ -577,7 +577,7 @@
       }
 
       var img = $("<img>").attr({
-        "src": "/img/pyret-spin.gif",
+        "src": window.APP_BASE_URL + "/img/pyret-spin.gif",
         "width": "25px",
       }).css({
         "vertical-align": "middle"
