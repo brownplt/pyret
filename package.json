@@ -16,7 +16,8 @@
 	"activationEvents": [],
 	"repository": "https://github.com/jpolitz/pyret-parley-vscode",
 	"files": [
-		"dist/web/**/*"
+		"dist/web/**/*",
+		"media/pyret-logo-128.png"
 	],
 	"browser": "./dist/web/extension.js",
 	"contributes": {
