@@ -36,6 +36,11 @@ selenium-test-local:
 selenium-test-sauce:
 	TEST_LOC="sauce" node test/test.js test/browser/pyret
 
+build/web/editor.embed.html: src/web/editor.html .env.embed
+	node make-template.js $< .env.embed > $@
+build/web/editor.html: src/web/editor.html
+	cp $< $@
+
 OUT_HTML := $(patsubst src/web/%.template.html,build/web/views/%.html,$(wildcard src/web/*.template.html))
 
 build/web/views/%.html: src/web/%.template.html
@@ -336,9 +341,9 @@ $(WEBIMG):
 $(WEBARR):
 	@$(call MKDIR,$(WEBARR))
 
-web-local: $(WEB) $(WEBV) $(WEBJS) $(WEBJSGOOG) $(WEBCSS) $(WEBTHEMES) $(WEBFONTS) $(WEBIMG) $(WEBIMAGES) $(WEBARR) $(OUT_HTML) $(COPY_HTML) $(OUT_CSS) $(COPY_CSS) $(COPY_LIB_CSS) $(COPY_THEMES) $(COPY_FONTS) $(COPY_JS) $(COPY_LIB_JS) $(COPY_LIB_IMAGES) $(COPY_ARR) $(COPY_GIF) $(COPY_SVG) $(COPY_PNG) $(MISC_JS) $(MISC_CSS) $(MISC_IMG) $(COPY_NEW_CSS) $(COPY_NEW_JS) $(COPY_GOOGLE_JS) $(CPOMAIN) $(CPOGZ) build/web/js/editor-misc.min.js build/web/js/snap build/web/js/transpile.xml
+web-local: build/web/editor.html build/web/editor.embed.html $(WEB) $(WEBV) $(WEBJS) $(WEBJSGOOG) $(WEBCSS) $(WEBTHEMES) $(WEBFONTS) $(WEBIMG) $(WEBIMAGES) $(WEBARR) $(OUT_HTML) $(COPY_HTML) $(OUT_CSS) $(COPY_CSS) $(COPY_LIB_CSS) $(COPY_THEMES) $(COPY_FONTS) $(COPY_JS) $(COPY_LIB_JS) $(COPY_LIB_IMAGES) $(COPY_ARR) $(COPY_GIF) $(COPY_SVG) $(COPY_PNG) $(MISC_JS) $(MISC_CSS) $(MISC_IMG) $(COPY_NEW_CSS) $(COPY_NEW_JS) $(COPY_GOOGLE_JS) $(CPOMAIN) $(CPOGZ) build/web/js/editor-misc.min.js build/web/js/snap build/web/js/transpile.xml
 
-web: $(WEB) $(WEBV) $(WEBJS) $(WEBJSGOOG) $(WEBCSS) $(WEBTHEMES) $(WEBFONTS) $(WEBIMG) $(WEBIMAGES) $(WEBARR) $(OUT_HTML) $(COPY_HTML) $(OUT_CSS) $(COPY_CSS) $(COPY_LIB_CSS) $(COPY_THEMES) $(COPY_FONTS) $(COPY_JS) $(COPY_LIB_JS) $(COPY_LIB_IMAGES) $(COPY_ARR) $(COPY_GIF) $(COPY_SVG) $(COPY_PNG) $(MISC_JS) $(MISC_CSS) $(MISC_IMG) $(COPY_NEW_CSS) $(COPY_NEW_JS) $(COPY_GOOGLE_JS) build/web/js/editor-misc.min.js build/web/js/snap build/web/js/transpile.xml
+web: build/web/editor.html build/web/editor.embed.html $(WEB) $(WEBV) $(WEBJS) $(WEBJSGOOG) $(WEBCSS) $(WEBTHEMES) $(WEBFONTS) $(WEBIMG) $(WEBIMAGES) $(WEBARR) $(OUT_HTML) $(COPY_HTML) $(OUT_CSS) $(COPY_CSS) $(COPY_LIB_CSS) $(COPY_THEMES) $(COPY_FONTS) $(COPY_JS) $(COPY_LIB_JS) $(COPY_LIB_IMAGES) $(COPY_ARR) $(COPY_GIF) $(COPY_SVG) $(COPY_PNG) $(MISC_JS) $(MISC_CSS) $(MISC_IMG) $(COPY_NEW_CSS) $(COPY_NEW_JS) $(COPY_GOOGLE_JS) build/web/js/editor-misc.min.js build/web/js/snap build/web/js/transpile.xml
 
 link-pyret:
 	ln -s node_modules/pyret-lang pyret
