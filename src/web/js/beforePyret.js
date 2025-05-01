@@ -3,6 +3,8 @@
 var originalPageLoad = Date.now();
 console.log("originalPageLoad: ", originalPageLoad);
 
+const isEmbedded = window.parent !== window;
+
 var shareAPI = makeShareAPI(process.env.CURRENT_PYRET_RELEASE);
 
 var url = window.url = require('url.js');
@@ -119,7 +121,9 @@ function checkVersion() {
     }
   });
 }
-window.setInterval(checkVersion, VERSION_CHECK_INTERVAL);
+if(!isEmbedded) {
+  window.setInterval(checkVersion, VERSION_CHECK_INTERVAL);
+}
 
 window.CPO = {
   save: function() {},
