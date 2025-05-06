@@ -55,13 +55,13 @@
 		}
 	},
 	"scripts": {
-		"fetch-pyret": "git clone --single-branch -b horizon --depth 1 https://github.com/brownplt/code.pyret.org; cd code.pyret.org; npm install; make link-pyret; npm run build",
-		"link-pyret": "ln -s code.pyret.org/build build",
-		"postinstall": "npm run fetch-pyret; npm run link-pyret",
+		"link-pyret": "ln -s node_modules/code.pyret.org/build build",
+		"postinstall": "npm run link-pyret",
 		"vscode:prepublish": "npm run compile",
 		"compile": "webpack --mode production"
 	},
 	"devDependencies": {
+		"code.pyret.org": "github:brownplt/code.pyret.org#horizon",
 		"@types/mustache": "^4.2.5",
 		"@types/node": "^18",
 		"@types/vscode": "^1.73.0",
