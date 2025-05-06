@@ -17,10 +17,13 @@ endif
 NODE_MODULE = $(shell node -e "console.log(require('node:path').dirname(require.resolve('$1')))")
 
 
-# CodeMirror and PYRET_MODE get special treatment: their import paths have
-# trailing lib/ or mode/ at the end, but we need files from other paths in them
+# These paths get special treatment: their import paths have
+# trailing lib/ or mode/ or build/something at the end, but we need files from
+# other paths in them
 CM=$(call NODE_MODULE,codemirror)/..
 PYRET_MODE=$(call NODE_MODULE,pyret-codemirror-mode)/..
+PYRET=$(call NODE_MODULE,pyret-lang)/../..
+
 CPOMAIN=build/web/js/cpo-main.jarr
 CPOGZ=build/web/js/cpo-main.jarr.gz.js
 PHASEA=pyret/build/phaseA/pyret.jarr
@@ -234,10 +237,10 @@ build/web/js/jump-to-line.js: $(CM)/addon/search/jump-to-line.js
 build/web/js/pyret-mode.js: $(PYRET_MODE)/mode/pyret.js
 	cp $< $@
 
-build/web/js/mousetrap.min.js: node_modules/mousetrap/mousetrap.min.js
+build/web/js/mousetrap.min.js: $(call NODE_MODULE,mousetrap)/mousetrap.min.js
 	cp $< $@
 
-build/web/js/mousetrap-global-bind.min.js: node_modules/mousetrap/plugins/global-bind/mousetrap-global-bind.min.js
+build/web/js/mousetrap-global-bind.min.js: $(call NODE_MODULE,mousetrap)/plugins/global-bind/mousetrap-global-bind.min.js
 	cp $< $@
 
 MISC_JS = build/web/js/q.js \
@@ -302,7 +305,7 @@ build/web/js/editor-misc.min.js: $(EDITOR_MISC_JS)
 
 MISC_IMG = build/web/img/pyret-icon.png build/web/img/pyret-logo.png build/web/img/pyret-spin.gif build/web/img/up-arrow.png build/web/img/down-arrow.png
 
-build/web/img/%: node_modules/pyret-lang/img/%
+build/web/img/%: $(PYRET)/img/%
 	cp $< $@
 
 COPY_ARR := $(patsubst ./pyret/src/arr/trove/%.arr,build/web/arr/%.arr,$(wildcard ./pyret/src/arr/trove/*.arr))
@@ -358,8 +361,8 @@ web-local: $(WEB) $(WEBV) $(WEBJS) $(WEBJSGOOG) $(WEBCSS) $(WEBTHEMES) $(WEBFONT
 web: $(WEB) $(WEBV) $(WEBJS) $(WEBJSGOOG) $(WEBCSS) $(WEBTHEMES) $(WEBFONTS) $(WEBIMG) $(WEBIMAGES) $(WEBARR) $(OUT_HTML) $(COPY_HTML) $(OUT_CSS) $(COPY_CSS) $(COPY_LIB_CSS) $(COPY_THEMES) $(COPY_FONTS) $(COPY_JS) $(COPY_LIB_JS) $(COPY_LIB_IMAGES) $(COPY_ARR) $(COPY_GIF) $(COPY_SVG) $(COPY_PNG) $(MISC_JS) $(MISC_CSS) $(MISC_IMG) $(COPY_NEW_CSS) $(COPY_NEW_JS) $(COPY_GOOGLE_JS) build/web/js/editor-misc.min.js build/web/js/snap build/web/js/transpile.xml build/web/editor.html build/web/editor.embed.html
 
 link-pyret:
-	ln -s node_modules/pyret-lang pyret
-	(cd node_modules/pyret-lang && $(MAKE) phaseA-deps)
+	ln -s $(PYRET) pyret
+	(cd $(PYRET) && $(MAKE) phaseA-deps)
 
 deploy-cpo-main: link-pyret $(CPOMAIN) $(CPOGZ)
 
@@ -374,7 +377,7 @@ libpyret:
 
 $(BUNDLED_DEPS): src/scripts/npm-dependencies.js
 	# Explicitly exclude crypto, buffer, and stylus, nested npm dependencies that aren't needed
-	node_modules/.bin/browserify src/scripts/npm-dependencies.js -x crypto -x stylus -o $(BUNDLED_DEPS)
+	npx browserify src/scripts/npm-dependencies.js -x crypto -x stylus -o $(BUNDLED_DEPS)
 
 $(CPOMAIN): $(BUNDLED_DEPS) $(TROVE_JS) $(TROVE_ARR) $(WEBJS) src/web/js/*.js src/web/arr/*.arr cpo-standalone.js cpo-config.json src/web/arr/cpo-main.arr $(PHASEA)
 	mkdir -p compiled/;
