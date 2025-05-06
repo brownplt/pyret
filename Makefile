@@ -14,11 +14,22 @@ else
 	RM = rm -f $1
 endif
 
-CM=node_modules/codemirror
-PYRET_MODE=node_modules/pyret-codemirror-mode
+NODE_MODULE = $(shell node -e "console.log(require('node:path').dirname(require.resolve('$1')))")
+
+
+# CodeMirror and PYRET_MODE get special treatment: their import paths have
+# trailing lib/ or mode/ at the end, but we need files from other paths in them
+CM=$(call NODE_MODULE,codemirror)/..
+PYRET_MODE=$(call NODE_MODULE,pyret-codemirror-mode)/..
 CPOMAIN=build/web/js/cpo-main.jarr
 CPOGZ=build/web/js/cpo-main.jarr.gz.js
 PHASEA=pyret/build/phaseA/pyret.jarr
+
+.PHONY : test_node_module
+test_node_module:
+	@echo $(call NODE_MODULE,codemirror)
+	@echo $(CM)
+
 
 BUNDLED_DEPS=build/web/js/bundled-npm-deps.js
 
@@ -132,7 +143,7 @@ build/web/js/google-apis/%.js: src/web/js/google-apis/%.js
 build/web/js/events.js: src/web/js/events.js
 	cp $< $@
 
-build/web/js/snap: node_modules/snap
+build/web/js/snap: $(call NODE_MODULE,snap)
 	mkdir -p build/web/js/snap
 	cp -r $</src build/web/js/snap
 	cp -r $</pyret build/web/js/snap
@@ -147,28 +158,29 @@ build/web/js/beforePyret.js: src/web/js/beforePyret.js
 build/web/js/beforeBlocks.js: src/web/js/beforeBlocks.js
 	npx webpack
 
-build/web/js/q.js: node_modules/q/q.js
+
+build/web/js/q.js: $(call NODE_MODULE,q)/q.js
 	cp $< $@
 
-build/web/js/s-expression-lib.js: node_modules/s-expression/index.js
+build/web/js/s-expression-lib.js: $(call NODE_MODULE,s-expression)/index.js
 	cp $< $@
 
-build/web/js/colorspaces.js: node_modules/colorspaces/colorspaces.js
+build/web/js/colorspaces.js: $(call NODE_MODULE,colorspaces)/colorspaces.js
 	cp $< $@
 
-build/web/js/es6-shim.js: node_modules/es6-shim/es6-shim.min.js
+build/web/js/es6-shim.js: $(call NODE_MODULE,es6-shim)/es6-shim.min.js
 	cp $< $@
 
-build/web/js/seedrandom.js: node_modules/seedrandom/seedrandom.js
+build/web/js/seedrandom.js: $(call NODE_MODULE,seedrandom)/seedrandom.js
 	cp $< $@
 
-build/web/js/source-map.js: node_modules/source-map/dist/source-map.js
+build/web/js/source-map.js: $(call NODE_MODULE,source-map)/dist/source-map.js
 	cp $< $@
 
-build/web/js/url.js: node_modules/url.js/url.js
+build/web/js/url.js: $(call NODE_MODULE,url.js)/url.js
 	cp $< $@
 
-build/web/js/require.js: node_modules/requirejs/require.js
+build/web/js/require.js: $(call NODE_MODULE,requirejs)/r.js
 	cp $< $@
 
 build/web/js/codemirror.js: $(CM)/lib/codemirror.js
