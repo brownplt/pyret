@@ -63,6 +63,7 @@
     "source-map": "^0.5.7",
     "style-loader": "0.13.1",
     "supervisor": "^0.11.0",
+    "uglify-js": "^3.19.3",
     "url-loader": "^0.6.2",
     "url.js": "^1.0.3",
     "webpack": "^5.89.0"
