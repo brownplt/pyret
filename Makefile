@@ -301,7 +301,7 @@ EDITOR_MISC_JS = build/web/js/q.js \
 		  build/web/js/authenticate-storage.js
 
 build/web/js/editor-misc.min.js: $(EDITOR_MISC_JS)
-	npm exec -- uglifyjs --compress -o $@ -- $^
+	npx uglifyjs --compress -o $@ -- $^
 
 MISC_IMG = build/web/img/pyret-icon.png build/web/img/pyret-logo.png build/web/img/pyret-spin.gif build/web/img/up-arrow.png build/web/img/down-arrow.png
 
@@ -399,7 +399,7 @@ $(CPOMAIN): $(BUNDLED_DEPS) $(TROVE_JS) $(TROVE_ARR) $(WEBJS) src/web/js/*.js sr
 # non-.js extension.
 $(CPOGZ): $(CPOMAIN)
 	cp $(CPOMAIN) $(CPOMAIN).js
-	npm exec -- uglifyjs --compress -o $(CPOMAIN).min -- $(CPOMAIN)
+	npx uglifyjs --compress -o $(CPOMAIN).min -- $(CPOMAIN)
 	gzip -c -f $(CPOMAIN).min > $(CPOGZ)
 
 clean:
