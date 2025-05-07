@@ -4,9 +4,9 @@ var webpack = webpack = require('webpack');
 
 var IS_PRODUCTION = process.env.NODE_ENV == 'production';
 var SRC_DIRECTORY = path.resolve(__dirname, 'src');
-var IDE_SRC_DIRECTORY = path.resolve(__dirname, 'node_modules', 'pyret-ide', 'src');
 
 module.exports = {
+  mode: IS_PRODUCTION ? 'production' : 'development',
   output: {
     path: path.resolve(__dirname, "build", "web"),
     filename: "[name].js",
@@ -16,44 +16,24 @@ module.exports = {
   entry: {
     "js/dashboard/index": './src/web/js/dashboard/index.js',
     "js/beforePyret": './src/web/js/beforePyret.js',
+    "js/beforeBlocks": './src/web/js/beforeBlocks.js',
   },
   module: {
-    loaders: [
-      {test: /\.css$/, loaders: ["style", "css"]},
-      {test:/.png|.jpg|.jpeg|.gif|.svg/, loader: "url-loader?limit=10000"},
-      {test:/.woff|.woff2/, loader: "url-loader?limit=10000"},
-      {test:/.woff|.woff2/, loader: "url-loader?limit=10000"},
-      {test:/.ttf|.eot/, loader: "file-loader"},
-      {test: /\.less$/, loader:'style!css!less'},
-    ],
-    preLoaders: [{
-      test: /\.js$/,
-      include: [
-        SRC_DIRECTORY,
-        // for some reason, webpack doesn't know how to deal with symlinks
-        // when deciding which loaders to use
-        fs.realpathSync(IDE_SRC_DIRECTORY),
-      ],
-      loader: "babel",
-      query: {
-        cacheDirectory: true
-      }
-    }].concat(
-      (process.env.COVERAGE || process.env.CONTINUOUS_INTEGRATION) ?
-      [{
-        test: /\.js/,
-        loader: 'isparta',
-        include: SRC_DIRECTORY,
-        exclude: /node_modules/
-      }] :
-      []
-    ),
+    rules: [
+      {test: /\.css$/, use: ["style-loader", "css-loader"]},
+      {test:/.png|.jpg|.jpeg|.gif|.svg/, use: "url-loader?limit=10000"},
+      {
+        test: /\.js$/,
+        enforce: "pre",
+        include: [
+          SRC_DIRECTORY,
+        ],
+        loader: "babel-loader"
+      }]
   },
   resolve: {
-    root: [path.resolve("./node_modules")],
-    alias: {
-      'pyret-ide': path.resolve(IDE_SRC_DIRECTORY, 'pyret-ide'),
-    },
+    modules: [__dirname, 'node_modules'],
+    alias: { },
   },
   plugins: [
     new webpack.DefinePlugin({
@@ -68,19 +48,10 @@ module.exports = {
       'process.env.BASE_URL': JSON.stringify(process.env.BASE_URL),
       'process.env.CURRENT_PYRET_RELEASE': JSON.stringify(process.env.CURRENT_PYRET_RELEASE),
     }),
-  ].concat(IS_PRODUCTION ? [
-    new webpack.optimize.UglifyJsPlugin({
-      compress: {
-        warnings: false
-      }
-    }),
-  ] : [
-    new webpack.HotModuleReplacementPlugin(),
-  ]),
-  devServer: IS_PRODUCTION ? false : {
+  ],
+  optimization: { minimize: IS_PRODUCTION },
+  devServer: IS_PRODUCTION ? {} : {
     inline: true,
-    hot: true,
-    progress: true,
     port: 5001,
     proxy: {
       "/**": {
@@ -88,5 +59,4 @@ module.exports = {
       }
     }
   },
-  progress: true
 };

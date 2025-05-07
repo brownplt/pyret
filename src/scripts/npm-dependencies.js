@@ -2,6 +2,11 @@
 // When building a web-standalone, browserify will parse this file
 // and produce a version which include each dependency that is required()
 //
+// Unfortunately some of these libraries have optional transitive dependencies
+// that are enormous and unused, so we need to prevent them from getting bundled.
+// See the browserify options in the Makefile, which currently prevent the 
+// crypto, buffer, and stylus libraries from being bundled, saving ~700kb.
+
 sexpr = require("s-expression");
 define("s-expression", [], function() {return sexpr;});
 
@@ -13,6 +18,9 @@ if(!!Q) {
 seedrandom = require("seedrandom");
 define("seedrandom", [], function() {return seedrandom;});
 
+csv = require("fast-csv");
+define("fast-csv", [], function() {return csv;});
+
 sourcemap = require("source-map");
 define("source-map", [], function () { return sourcemap; });
 
@@ -21,6 +29,16 @@ define("js-sha256", [], function () { return jssha256; });
 
 jsmd5 = require("js-md5");
 define("js-md5", [], function () { return jsmd5; });
+
+define("canvas", [], function() {
+  return {
+    createCanvas: function() { return document.createElement("canvas"); },
+    Image: Image
+  };
+});
+
+crossfetch = require("cross-fetch");
+define("cross-fetch", [], function() { return crossfetch; });
 
 colorspaces = require("colorspaces");
 define("colorspaces", [], function () { return colorspaces; });
@@ -31,11 +49,37 @@ define("d3", [], function() { return d3; });
 d3_tip = require("d3-tip");
 define("d3-tip", [], function() { return d3_tip(d3); });
 
-if(!!google) {
-  define("google-charts", [], function() {return google;});
-}
+define("google-charts", [], function() { return window.google || { info: "Google charts library did not load" }; });
 
-define("fs", [], function () { return {}; });
+var fsWrapper = {
+  fs: {
+    writeFile: async function(path, buffer, callback) {
+      if(!window.MESSAGES.sendRpc) { throw new Error("Cannot writeFile on the web"); }
+      else {
+        try {
+          const result = await window.MESSAGES.sendRpc('fs', 'writeFile', [path, buffer]);
+          return callback(undefined, result);
+        }
+        catch(e) {
+          return callback(e);
+        }
+      }
+    },
+    readFile: async function(path, opts, callback) {
+      if(!window.MESSAGES.sendRpc) { throw new Error("Cannot readFile on the web"); }
+      else {
+        try {
+          const result = await window.MESSAGES.sendRpc('fs', 'readFile', [path, opts]);
+          return callback(undefined, result);
+        }
+        catch(e) {
+          return callback(e);
+        }
+      }
+    },
+  }
+}
+define("fs", [], function () { return fsWrapper.fs; });
 
 // NOTE(joe): this is slightly bogus, but due to the way pathlib can load, even
 // though it's not used, this needs to be defined (it represents the separator

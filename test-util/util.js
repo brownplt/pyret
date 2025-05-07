@@ -3,19 +3,28 @@ var webdriver = require("selenium-webdriver");
 var fs = require("fs");
 var Q = require("q");
 const chromedriver = require('chromedriver');
+const chrome = require('selenium-webdriver/chrome');
 
 let PATH_TO_CHROME;
-// Used by Travis
-if (process.env.GOOGLE_CHROME_BINARY) {
+
+if (process.env.CHROMEDRIVER_BINARY) {
+  // Note(Ben): Use `env CHROMDRIVER_BINARY=/snap/bin/chromium.chromedriver npm run mocha`
+  // Based on https://stackoverflow.com/a/53971573
+  chrome.setDefaultService(new chrome.ServiceBuilder(process.env.CHROMEDRIVER_BINARY).build());
+} else if (process.env.GOOGLE_CHROME_BINARY) {
+  // Used by Travis
   PATH_TO_CHROME = process.env.GOOGLE_CHROME_BINARY;
 }
-else {
-  console.log("The tester is guessing that you're on a Mac :-) You can set GOOGLE_CHROME_BINARY to the path to your Chrome install if this path isn't for your machine work");
+else if (process.platform === 'darwin') {
   PATH_TO_CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+  console.log(`The tester is guessing that you're on a Mac and using ${PATH_TO_CHROME}. You can set GOOGLE_CHROME_BINARY to the path to your Chrome install if this path is not working.`);
 }
+
+let leave_open = process.env.LEAVE_OPEN === "true" || false;
 
 let args = process.env.SHOW_BROWSER ? [] : [
   '--headless',
+  '--no-sandbox',
 ];
 if(!process.env.SHOW_BROWSER) {
   console.log("Running Chrome headless. You can set SHOW_BROWSER=true to see what's going on");
@@ -23,20 +32,23 @@ if(!process.env.SHOW_BROWSER) {
 
 // Working from https://developers.google.com/web/updates/2017/04/headless-chrome#drivers
 const chromeCapabilities = webdriver.Capabilities.chrome();
-chromeCapabilities.set('chromeOptions', {
-  binary: PATH_TO_CHROME,
-  'args': args
-});
+const options = { args };
+if (PATH_TO_CHROME !== undefined) {
+  options.binary = PATH_TO_CHROME;
+}
+chromeCapabilities.set('chromeOptions', options);
 
 
 function teardown() {
-  if(!(this.currentTest.state === 'failed')) {
+  if(!(this.currentTest.state === 'failed' || leave_open)) {
     return this.browser.quit();
   }
 }
 
 function teardownMulti() {
-  return this.browser.quit();
+  if(!leave_open) {
+    return this.browser.quit();
+  }
 }
 
 function setupWithName(name) {
@@ -46,7 +58,7 @@ function setupWithName(name) {
   .forBrowser("chrome")
   .withCapabilities(chromeCapabilities).build();
 
-  this.browser.manage().window().maximize();
+//  this.browser.manage().window().maximize();
 
   return;
 }
@@ -79,10 +91,22 @@ function waitForPyretLoad(driver, timeout) {
   return driver.wait(function() { return pyretLoaded(driver); }, timeout);
 }
 
-function evalDefinitions(driver, toEval, options) {
+function setCodemirror(driver, getCM, content) {
+  var escaped = escape(content);
+  driver.executeScript(`
+var CM = ${getCM};
+var first = CM.firstLine();
+var last = CM.lastLine();
+CM.replaceRange(unescape(\"${escaped}\"), {line: first, ch: 0}, {line: last + 1, ch: 0});
+`);
+  // driver.executeScript("$(\".CodeMirror\")[0].CodeMirror.setValue(unescape(\""+ escaped + "\"));");
+}
+
+function setDefinitions(driver, code) {
   // http://stackoverflow.com/a/1145525 
-  var escaped = escape(toEval);
-  driver.executeScript("$(\".CodeMirror\")[0].CodeMirror.setValue(unescape(\""+ escaped + "\"));");
+  setCodemirror(driver, "$(\".CodeMirror\")[0].CodeMirror", code);
+}
+function evalDefinitions(driver, options) {
   if(options && options.typeCheck) {
     driver.findElement(webdriver.By.id("runDropdown")).click();
     driver.findElement(webdriver.By.id("select-tc-run")).click();
@@ -92,11 +116,30 @@ function evalDefinitions(driver, toEval, options) {
   }
 }
 
-function evalPyretDefinitionsAndWait(driver, toEval, options) {
-  evalDefinitions(driver, toEval, options);
+function waitForBreakButton(driver) {
   var breakButton = driver.findElement(webdriver.By.id('breakButton'));
   driver.wait(webdriver.until.elementIsDisabled(breakButton));
+}
+
+function waitForNoPrompt(driver) {
+  var livePrompt = driver.findElement(webdriver.By.className('prompt-container'));
+  return driver.wait(webdriver.until.elementIsNotVisible(livePrompt));
+}
+
+function evalDefinitionsAndWait(driver, options) {
+  evalDefinitions(driver, options);
+  waitForBreakButton(driver);
   return driver.findElement(webdriver.By.id("output"));
+}
+
+function setDefinitionsEvalAndWait(driver, toEval, options) {
+  setDefinitions(driver, toEval);
+  return evalDefinitionsAndWait(driver, options);
+}
+
+function setDefinitionsAndEval(driver, toEval, options) {
+  setDefinitions(driver, toEval);
+  evalDefinitions(driver, options);
 }
 
 
@@ -112,7 +155,7 @@ function checkTableRendersCorrectly(code, driver, test, timeout) {
   var maybeTest = replOutput.findElements(webdriver.By.xpath('pre'));
   return maybeTest.then(function(elements) {
     if (elements.length > 0) {
-      elements[0].getInnerHtml()
+      elements[0].getAttribute("innerHTML")
         .then(function(testsStr) {
           try {
             return JSON.parse(testsStr);
@@ -139,7 +182,7 @@ function checkTableRendersCorrectly(code, driver, test, timeout) {
                 .findElement(webdriver.By.xpath("//tbody/tr[" + row + "]"
                                                 + "/td[" + col + "]/span"))
                 .then(function(tableRender) {
-                  return P.all([tableRender.getOuterHtml(), resps[1][0].getOuterHtml()]);
+                  return P.all([tableRender.getAttribute("outerHTML"), resps[1][0].getAttribute("outerHTML")]);
                 });
               })
               .then(function(rendered) {
@@ -157,19 +200,31 @@ function checkTableRendersCorrectly(code, driver, test, timeout) {
 
 function loadAndRunPyret(code, driver, timeout) {
   waitForPyretLoad(driver, timeout);
-  evalDefinitions(driver, code);
+  setDefinitionsAndEval(driver, code);
 }
 
-function checkWorldProgramRunsCleanly(code, driver, test, timeout) {
-  loadAndRunPyret(code, driver, timeout);
+function waitForEditorContent(driver) {
+  driver.wait(function() {
+    return driver.executeScript(
+      "return $('.replMain > .CodeMirror')[0].CodeMirror.getValue() !== ''"
+    );
+  });
+}
+
+function waitForWorldProgram(driver, timeout, worldTimeout) {
   driver.wait(function() {
     return driver
       .findElements(webdriver.By.className("ui-dialog-title")).then(
         function(elements) { return elements.length > 0; });
   }, timeout);
-  driver.sleep(5000); // make sure the big-bang can run for 5 seconds
+  driver.sleep(worldTimeout); // make sure the big-bang can run for worldTimeout ms
   driver.findElement(webdriver.By.className("ui-icon-closethick"))
     .click();
+}
+
+function checkWorldProgramRunsCleanly(code, driver, test, timeout) {
+  loadAndRunPyret(code, driver, timeout);
+  waitForWorldProgram(driver, timeout, 5000);
   checkAllTestsPassed(driver, test.title, timeout);
 }
 
@@ -178,16 +233,20 @@ function runAndCheckAllTestsPassed(code, driver, test, timeout) {
   checkAllTestsPassed(driver, test.title, timeout);
 }
 
+function isElementPresent(base, toFind) {
+  return base.findElements(toFind).then(function(found) { return found.length > 0; });
+}
+
 function checkAllTestsPassed(driver, name, timeout) {
   var replOutput = driver.findElement(webdriver.By.id("output"));
   driver.wait(function() {
-    return replOutput.isElementPresent(webdriver.By.className("testing-summary"));
+    return isElementPresent(replOutput, webdriver.By.className("testing-summary"));
   }, timeout);
   var checkBlocks = replOutput.then(function(response) {
     driver.wait(function () {
-      return driver.isElementPresent(webdriver.By.className("check-results-done-rendering"));
+      return isElementPresent(driver, webdriver.By.className("check-results-done-rendering"));
     }, 20000);
-    return response.findElements(webdriver.By.className("check-block-result"));
+    return response.findElements(webdriver.By.css(".check-block-failed, .check-block-errored"));
   });
   return checkBlocks.then(function(cbs) {
     return replOutput.findElements(contains("Looks shipshape")).then(function(shipshapes) {
@@ -198,7 +257,7 @@ function checkAllTestsPassed(driver, name, timeout) {
           return cb.findElement(webdriver.By.className("check-block-header")).click().then(function(_) {
             return cb.findElements(webdriver.By.className("check-block-test")).then(function(tests) {
               return tests.length === 0
-                ? Q.all(Array(specs[i].length).fill("Passed"))
+                ? Q.all([cb.getText()])
                 : Q.all(tests.map(function(t) { return t.getText(); }));
             });
           });
@@ -243,37 +302,42 @@ function doForEachPyretFile(it, name, base, testFun, baseTimeout) {
 
 function evalPyret(driver, toEval) {
   var replOutput = driver.findElement(webdriver.By.id("output"));
-  var breakButton = driver.findElement(webdriver.By.id('breakButton'));
-  var escaped = escape(toEval);
+  var livePrompt = driver.findElement(webdriver.By.className('prompt-container'));
+  driver.wait(webdriver.until.elementIsVisible(livePrompt));
+  setCodemirror(driver, "$(\".repl-prompt > .CodeMirror\")[0].CodeMirror", toEval);
   driver.executeScript([
     "(function(cm){",
-    "cm.setValue(unescape(\"" + escaped + "\"));",
     "cm.options.extraKeys.Enter(cm);",
     "})",
     "($(\".repl-prompt > .CodeMirror\")[0].CodeMirror)"
   ].join(""));
-  driver.wait(webdriver.until.elementIsDisabled(breakButton));
-  return replOutput.findElements(webdriver.By.xpath("*")).then(function(elements) {
-    if (elements.length === 0) {
-      throw new Error("Failed to run Pyret code, no elements after executing: " + toEval);
-    } else {
-      return elements[elements.length - 1];
-    }
+  driver.wait(webdriver.until.elementIsVisible(livePrompt));
+  return driver.call(function() {
+    return replOutput.findElements(webdriver.By.xpath("*")).then(function(elements) {
+      if (elements.length === 0) {
+        throw new Error("Failed to run Pyret code, no elements after executing: " + toEval);
+      } else {
+        return elements[elements.length - 1];
+      }
+    });
   });
 }
 
 function evalPyretNoError(driver, toEval) {
   return evalPyret(driver, toEval).then(function(element) {
     return webdriver.promise
-      .all([element.getTagName(), element.getAttribute('class')])
+      .all([element.getTagName(), element.getAttribute('class'), element.getText()])
       .then(function(resp) {
-        var name = resp[0];
-        var clss = resp[1];
+        const name = resp[0];
+        const clss = resp[1];
+        const text = resp[2];
 
         if (!(clss === "echo-container" || clss === "trace")) {
-          throw new Error("Failed to run Pyret code: " + toEval);
+          const errorstring = "Failed to run Pyret code: " + toEval + "\n" + text;
+          console.error(errorstring);
+          throw new Error(errorstring);
         } else {
-          return element.findElements(webdriver.By.className("replOutput"));
+          return element.findElements(webdriver.By.css(".replOutput, .replTextOutput"));
         }
       });
   });
@@ -284,11 +348,39 @@ function testRunAndUseRepl(it, name, toEval, toRepl, options) {
     this.timeout(15000);
     var self = this;
     var replOutput = self.browser.findElement(webdriver.By.id("output"));
-    evalPyretDefinitionsAndWait(self.browser, toEval, options);
+    setDefinitionsEvalAndWait(self.browser, toEval, options);
     var replResults = Q.all(toRepl.map(function(tr) {
       return evalPyretNoError(self.browser, tr[0]).then(function(elts) {
         if(elts.length === 0 && tr[1] === "") {
           return true;
+        }
+        else {
+          return elts[0].getText().then(function(t) {
+            if(t.indexOf(tr[1]) !== -1) { return true; }
+            else {
+              throw new Error("Expected repl text content " + tr[1] + " not contained in output " + t + " for repl entry " + tr[0]);
+            }
+          });
+        }
+      });
+    }));
+    return replResults;
+  });
+}
+
+function testRunAndUseRepl(it, name, toEval, toRepl, options) {
+  it("should evaluate definitions and see the effects at the repl for " + name, function() {
+    this.timeout(15000);
+    var self = this;
+    var replOutput = self.browser.findElement(webdriver.By.id("output"));
+    setDefinitionsEvalAndWait(self.browser, toEval, options);
+    var replResults = Q.all(toRepl.map(function(tr) {
+      return evalPyretNoError(self.browser, tr[0]).then(function(elts) {
+        if(elts.length === 0 && tr[1] === "") {
+          return true;
+        }
+        else if(elts.length === 0 && tr[1] !== "") {
+          throw new Error("Expected repl text content " + tr[1] + " but got empty output for repl entry " + tr[0]);
         }
         else {
           return elts[0].getText().then(function(t) {
@@ -309,27 +401,43 @@ function testRunAndAllTestsPass(it, name, toEval, options) {
     this.timeout(15000);
     var self = this;
     var replOutput = self.browser.findElement(webdriver.By.id("output"));
-    evalPyretDefinitionsAndWait(this.browser, toEval, options);
+    setDefinitionsEvalAndWait(this.browser, toEval, options);
     return checkAllTestsPassed(self.browser, name, 20000);
   });
 }
 
+function ensureRendered(text) {
+  if (text.indexOf("One or more internal errors") > -1) {
+    throw new Error("Internal error occurred while rendering output.  Text content of error \"" + text + "\"");
+  }
+}
+
+/*
+    NOTE: This function _removes_ any CodeMirrors rendering output code to
+    avoid false positives from code rather than from the error message itself.
+    Don't rely on, or test, the snippets that show up in CodeMirror with this
+    function.
+*/
 function testErrorRendersString(it, name, toEval, expectedString, options) {
   it("should render " + name + " errors", function() {
     this.timeout(15000);
     var self = this;
     var replOutput = self.browser.findElement(webdriver.By.id("output"));
-    return evalPyretDefinitionsAndWait(this.browser, toEval, options).then(function(response) {
+    return setDefinitionsEvalAndWait(this.browser, toEval, options).then(function(response) {
       self.browser.wait(function () {
-        return replOutput.isElementPresent(webdriver.By.className("compile-error"));
+        return isElementPresent(replOutput, webdriver.By.className("compile-error"));
       }, 6000);
-      return response.getText().then(function(text) {
-        if(text.indexOf(expectedString) !== -1) {
-          return true;
-        }
-        else {
-          throw new Error("Text content of error \"" + text + "\" did not match \"" + expectedString + "\"");
-        }
+      self.browser.executeScript("$('#output .CodeMirror').remove()");
+      return self.browser.call(function() {
+        return response.getText().then(function(text) {
+          ensureRendered(text);
+          if(text.indexOf(expectedString) !== -1) {
+            return true;
+          }
+          else {
+            throw new Error("Text content of error \"" + text + "\" did not match \"" + expectedString + "\"");
+          }
+        })
       });
     });
   });
@@ -341,17 +449,23 @@ function testErrorRendersString(it, name, toEval, expectedString, options) {
     There should be a number of check blocks equal to the outer array, each
     with a number of test results equal to the inner array, each containing
     all of the given strings as substrings of the output.
+    
+    NOTE: This function _removes_ any CodeMirrors rendering output code to
+    avoid false positives from code rather than from the error message itself.
+    Don't rely on, or test, the snippets that show up in CodeMirror with this
+    function.
 */
 function testRunsAndHasCheckBlocks(it, name, toEval, specs, options) {
   it("should render " + name + " check blocks", function() {
     var self = this;
     this.timeout(20000);
-    var replOutput = evalPyretDefinitionsAndWait(this.browser, toEval, options);
+    var replOutput = setDefinitionsEvalAndWait(self.browser, toEval, options);
     var checkBlocks = replOutput.then(function(response) {
       self.browser.wait(function () {
-        return self.browser.isElementPresent(webdriver.By.className("check-results-done-rendering"));
+        return isElementPresent(self.browser, webdriver.By.className("check-results-done-rendering"));
       }, 20000);
-      return response.findElements(webdriver.By.className("check-block"));
+      self.browser.executeScript("$('#output .CodeMirror').remove()");
+      return self.browser.call(function() { return response.findElements(webdriver.By.className("check-block")) });
     });
     var blocksAsSpec = checkBlocks.then(function(cbs) {
       var tests = cbs.slice(1).map(function(cb, i) {
@@ -376,6 +490,7 @@ function testRunsAndHasCheckBlocks(it, name, toEval, specs, options) {
           throw new Error("Expected to see output for " + expectedTests + " tests within check block at index " + i + ", but saw " + b.length);
         }
         b.forEach(function(text, j) {
+          ensureRendered(text);
           specs[i][j].forEach(function(testMustContain) {
             if(text.indexOf(testMustContain) === -1) {
               throw new Error("Text content of error \"" + text + "\" did not contain \"" + testMustContain + "\"");
@@ -404,5 +519,12 @@ module.exports = {
   runAndCheckAllTestsPassed: runAndCheckAllTestsPassed,
   checkTableRendersCorrectly: checkTableRendersCorrectly,
   checkWorldProgramRunsCleanly: checkWorldProgramRunsCleanly,
-  doForEachPyretFile: doForEachPyretFile
+  waitForWorldProgram: waitForWorldProgram,
+  doForEachPyretFile: doForEachPyretFile,
+  evalDefinitionsAndWait: evalDefinitionsAndWait,
+  evalDefinitions: evalDefinitions,
+  evalPyretNoError: evalPyretNoError,
+  waitForBreakButton: waitForBreakButton,
+  waitForNoPrompt: waitForNoPrompt,
+  waitForEditorContent: waitForEditorContent
 }

@@ -6,6 +6,7 @@ window.makeShareAPI = function makeShareAPI(pyretVersion) {
       hideIt();
     });
   }
+  /*
   function makeHoverMenu(triggerElt, menuElt, showOnHover, onShow) {
     var divHover = false;
     var linkHover = false;
@@ -22,7 +23,7 @@ window.makeShareAPI = function makeShareAPI(pyretVersion) {
           left: triggerElt.offset().left,
           "z-index": 10000
         });
-        $(document.body).append(menuElt);
+        //$(document.body).append(menuElt);
         menuElt.fadeIn(250);
         showing = true;
         setTimeout(function() {
@@ -41,16 +42,27 @@ window.makeShareAPI = function makeShareAPI(pyretVersion) {
       evt.stopPropagation();
     });
     triggerElt.on("click", function(e) {
-      if(!showing) { show(); e.stopPropagation(); }
-      else { hide(); }
+      //console.log('triggerElt clicked');
+      if(!showing) { show(); e.stopPropagation();
+        //menuElt.find('div').find('a').attr('tabIndex', -1);
+        //menuElt.find('div').find('input').attr('tabIndex', -1);
+        //menuElt.find('div.disabled').find('a').attr('tabIndex', -1);
+        //console.log('set filemenu submenu tabindex to 0');
+      }
+      else { hide();
+        //menuElt.find('a').attr('tabIndex', -1);
+        //menuElt.find('input').attr('tabIndex', -1);
+        //console.log('set filemenu submenu tabindex to -1');
+      }
     });
     return triggerElt;
   }
+  */
 
   $(".menuButton a").click(hideAllHovers);
 
   function makeShareLink(originalFile) {
-    var link = $("<div>").append($("<button class=blueButton>").text("Publish"));
+    var link = $('<button aria-label="Publish, F9" aria-describedby="mhelp-menus mhelp-activate mhelp-escape" class="focusable blueButton" role="menuitem" tabindex="-1">').text("Publish");
     var shareDiv = $("<div>").addClass("share");
     link.click(function() { showShares(shareDiv, originalFile); });
     return link;
@@ -62,6 +74,7 @@ window.makeShareAPI = function makeShareAPI(pyretVersion) {
         title: "Publish this file",
         style: "confirm",
         submitText: "Publish",
+        narrow: true,
         options: [
           {
             message: "This program has not been shared before.  Publishing it by clicking below will make a new copy of the file that you can share with anyone you like.  They will be able to see your code and run your program."
@@ -71,6 +84,9 @@ window.makeShareAPI = function makeShareAPI(pyretVersion) {
       newShare.show().then(function(confirmed) {
         if(confirmed === true) {
           window.CPO.save().then(function(p) {
+            // TODO: this message may not be visible enough and there can be a
+            // lengthy delay between the first dialog closing and the next one
+            // opening. Might want to leave modal open with a spinner...
             window.stickMessage("Copying...");
             var copy = p.makeShareCopy();
             copy.fail(function(err) {
@@ -108,7 +124,7 @@ window.makeShareAPI = function makeShareAPI(pyretVersion) {
             text: importCode
           },
           {
-            message: "You can also click Update below to copy the current version to the published version, or click Close to exit this window."
+            message: "You can also click Update below to copy the current version to the published version, or click Cancel to exit this window."
           }
         ]
       });
@@ -165,74 +181,9 @@ window.makeShareAPI = function makeShareAPI(pyretVersion) {
     }
   }
 
-  function autoHighlightBox(text) {
-    var textBox = $("<input type='text'>").addClass("auto-highlight");
-    textBox.attr("size", text.length);
-    textBox.attr("editable", false);
-    textBox.on("focus", function() { $(this).select(); });
-    textBox.on("mouseup", function() { $(this).select(); });
-    textBox.val(text);
-    return textBox;
-  }
-
-  function getLanguage() {
-    if(typeof navigator !== "undefined") {
-      return navigator.language || "en-US"; // Biased towards USA
-    }
-    else {
-      return "en-US";
-    }
-  }
-
-  var dateOptions = {
-    weekday: "short",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "numeric"
-  };
-
-  function drawShareRow(f) {
-    var container = $("<div>").addClass("sharebox");
-    var shareUrl = makeShareUrl(f.getUniqueId());
-    var displayDate = new Date(f.getModifiedTime()).toLocaleString(getLanguage, dateOptions);
-    var hoverDate = String(new Date(f.getModifiedTime()));
-    container.append($("<label>").text(displayDate).attr("alt", hoverDate));
-    var shareLink = $("<a href='javascript:void()'>").text("(Share Link)").addClass("copy-link");
-    var importLink = $("<a href='javascript:void()'>").text("(Import Code)").addClass("copy-link");
-    container.append(shareLink);
-    container.append(importLink);
-    function showCopyText(title, text) {
-      var linkDiv = $("<div>").css({"z-index": 15000});
-      linkDiv.dialog({
-        title: title,
-        modal: true,
-			  overlay : { opacity: 0.5, background: 'black'},
-        width : "70%",
-        height : "auto",
-        closeOnEscape : true
-      });
-      var box = autoHighlightBox(text);
-      linkDiv.append(box);
-      box.focus();
-    }
-    shareLink.click(function() {
-      showCopyText("Copy Share Link", shareUrl);
-    });
-
-    var importLetter = getImportLetter(f.getName()[0]);
-    var importCode = "import shared-gdrive(\"" + f.getName() +
-        "\", \"" + f.getUniqueId() + "\") as " + importLetter;
-    importLink.click(function() {
-      showCopyText("Copy Import Code", importCode);
-    });
-    return container;
-  }
-
   return {
     makeShareLink: makeShareLink,
-    makeHoverMenu: makeHoverMenu,
+    //makeHoverMenu: makeHoverMenu,
     makeShareUrl: makeShareUrl
   };
 

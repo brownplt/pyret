@@ -6,7 +6,10 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
 
   var main = toLoad[toLoad.length - 1];
 
-  var realm = {};
+  var realm = {
+    instantiated: {},
+    static: {}
+  };
 
   cpoBuiltinModules.setStaticModules(program.staticModules);
 
@@ -49,13 +52,13 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
 
   var gf = runtime.getField;
 
-  var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checkAll: true});
+  var postLoadHooks = loadHooksLib.makeDefaultPostLoadHooks(runtime, {main: main, checks: "main" });
   postLoadHooks["builtin://cpo-builtins"] = function(_) {
     // NOTE(joe): At this point, all the builtin modules are for sure loaded
     // (like image, world, etc)
     
-    var reactors = gf(gf(realm["builtin://reactors"], "provide-plus-types"), "internal");
-    var world = gf(gf(realm["builtin://world"], "provide-plus-types"), "internal");
+    var reactors = gf(gf(realm.instantiated["builtin://reactors"], "provide-plus-types"), "internal");
+    var world = gf(gf(realm.instantiated["builtin://world"], "provide-plus-types"), "internal");
     reactors.setInteract(world.bigBangFromDict);
 
     cpoBuiltinModules.setRealm(realm);
@@ -76,7 +79,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
     var toCall = runtime.getField(checker, "render-check-results-stack");
     var checks = runtime.getField(answer, "checks");
     return runtime.safeCall(function() {
-      return toCall.app(checks, getStackP);
+      return toCall.app(checks, getStackP, "text");
     }, function(printedCheckResult) {
       if(runtime.isString(printedCheckResult)) {
         console.log(printedCheckResult);
@@ -91,7 +94,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
       var rendererror = execRt.getField(rendererrorMod, "provide-plus-types");
       var gf = execRt.getField;
       var exnStack = res.exn.stack;
-      res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, program);
+      res.exn.pyretStack = stackLib.convertExceptionToPyretStackTrace(res.exn, realm);
       var pyretStack = res.exn.pyretStack;
       execRt.runThunk(
         function() {
@@ -154,6 +157,9 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
         $("#runDropdown").attr("disabled", false);
         clearInterval($("#loader").data("intervalID"));
         $("#loader").hide();
+        CPO.events.triggerOnLoad();
+        CPO.say('Pyret loaded and ready.');
+        
         console.log("REPL ready.");
       });
     }
@@ -167,7 +173,7 @@ requirejs(["pyret-base/js/runtime", "pyret-base/js/post-load-hooks", "pyret-base
   }
 
   return runtime.runThunk(function() {
-    runtime.modules = realm;
+    runtime.modules = realm.instantiated;
     return runtime.runStandalone(staticModules, realm, depMap, toLoad, postLoadHooks);
   }, onComplete);
 

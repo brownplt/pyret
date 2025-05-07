@@ -14,11 +14,19 @@
     },
     { "import-type": "dependency",
       protocol: "file",
+      args: ["../../../pyret/src/arr/compiler/locators/url.arr"]
+    },
+    { "import-type": "dependency",
+      protocol: "file",
       args: ["../arr/cpo.arr"]
     },
     { "import-type": "dependency",
       protocol: "js-file",
       args: ["./repl-ui"]
+    },
+    { "import-type": "dependency",
+      protocol: "js-file",
+      args: ["./text-handlers"]
     },
     { "import-type": "builtin",
       name: "parse-pyret"
@@ -38,22 +46,29 @@
   ],
   nativeRequires: [
     "cpo/gdrive-locators",
+    "cpo/file-locator",
     "cpo/http-imports",
     "cpo/cpo-builtin-modules",
     "cpo/modal-prompt",
     "pyret-base/js/runtime"
   ],
-  provides: {},
+  provides: {
+    values: {
+      "repl": "tany"
+    }
+  },
   theModule: function(runtime, namespace, uri,
-                      compileLib, compileStructs, pyRepl, cpo, replUI,
+                      compileLib, compileStructs, pyRepl, urlLoc, cpo, replUI, textHandlers,
                       parsePyret, runtimeLib, loadLib, builtinModules, cpoBuiltins,
-                      gdriveLocators, http, cpoModules, _modalPrompt,
+                      gdriveLocators, fileLocator, http, cpoModules, _modalPrompt,
                       rtLib) {
 
 
 
 
     var replContainer = $("<div>").addClass("repl");
+    replContainer.attr("tabindex", "-1").attr('role', 'application');
+    //replContainer.attr("aria-hidden", "true");
     $("#REPL").append(replContainer);
 
     var logDetailedOption = $("#detailed-logging");
@@ -71,12 +86,16 @@
 
     localSettings.change("log-detailed", function(_, newValue) {
       logDetailedOption[0].checked = newValue == 'true';
+      logDetailedOption.attr('aria-pressed', '' + (newValue == 'true'));
     });
 
     runtime.setParam("imgUrlProxy", function(s) {
       var a = document.createElement("a");
       a.href = s;
       if(a.origin === window.APP_BASE_URL) {
+        return s;
+      }
+      else if(window.IMAGE_PROXY_BYPASS) {
         return s;
       }
       else if(a.hostname === "drive.google.com" && a.pathname === "/uc") {
@@ -139,6 +158,24 @@
             else if (protocol === "gdrive-js") {
               return "gdrive-js://" + arr[1];
             }
+            else if (protocol === "file") {
+              if(!window.MESSAGES) {
+                console.error("Unknown import: ", dependency);
+                return protocol + "://" + arr.join(":");
+              }
+              return runtime.pauseStack((restarter) => {
+                const realpath = window.MESSAGES.sendRpc('path', 'resolve', [arr[0]]);
+                realpath.then((realpath) => {
+                  restarter.resume(`file://${realpath}`);
+                });
+              });
+            }
+            else if (protocol === "url") {
+              return arr[0];
+            }
+            else if (protocol === "url-file") {
+              return arr[0] + "/" + arr[1];
+            }
             else {
               console.error("Unknown import: ", dependency);
               return protocol + "://" + arr.join(":");
@@ -148,7 +185,7 @@
 
     }
 
-    function makeFindModule() {
+    function makeFindModule(urlFileMode) {
       // The locatorCache memoizes locators for the duration of an
       // interactions run
       var locatorCache = {};
@@ -179,6 +216,58 @@
                 }
                 else if (protocol === "gdrive-js") {
                   return constructors.makeGDriveJSLocator(arr[0], arr[1]);
+                }
+                else if (protocol === "file" && window.MESSAGES) {
+                  var fileLocatorConstructor = fileLocator.makeFileLocatorConstructor(window.MESSAGES.sendRpc, runtime, compileLib, compileStructs, parsePyret, builtinModules, cpo);
+                  return fileLocatorConstructor.makeFileLocator(arr[0]);
+                }
+                else if (protocol === "url") {
+                  fetch(arr[0]).then(async (response) => {
+                    CPO.documents.set(arr[0], new CodeMirror.Doc(await response.text(), "pyret"));
+                  });
+                  return runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(arr[0], replGlobals);
+                }
+                else if (protocol === "url-file") {
+                  const fullUrl = arr[0] + "/" + arr[1];
+                  switch(urlFileMode) {
+                    case "all-remote":
+                      fetch(fullUrl).then(async (response) => {
+                        CPO.documents.set(fullUrl, new CodeMirror.Doc(await response.text(), "pyret"));
+                      });
+                      return runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(fullUrl, replGlobals);
+                    case "all-local":
+                      window.MESSAGES.sendRpc('fs', 'readFile', [fullUrl, 'utf8']).then((contents) => {
+                        CPO.documents.set(fullUrl, new CodeMirror.Doc(contents, "pyret"));
+                      });
+                      var fileLocatorConstructor = fileLocator.makeFileLocatorConstructor(window.MESSAGES.sendRpc, runtime, compileLib, compileStructs, parsePyret, builtinModules, cpo);
+                      return fileLocatorConstructor.makeFileLocator(arr[1]);
+                    case "local-if-present":
+                      return runtime.pauseStack(async (restarter) => {
+                        const exists = await window.MESSAGES.sendRpc('fs', 'exists', [arr[1]]);
+                        if(exists) {
+                          window.MESSAGES.sendRpc('fs', 'readFile', [fullUrl, 'utf8']).then((contents) => {
+                            CPO.documents.set(fullUrl, new CodeMirror.Doc(contents, "pyret"));
+                          });
+                          return runtime.runThunk(() => {
+                            var fileLocatorConstructor = fileLocator.makeFileLocatorConstructor(window.MESSAGES.sendRpc, runtime, compileLib, compileStructs, parsePyret, builtinModules, cpo);
+                            return fileLocatorConstructor.makeFileLocator(arr[1]);
+                          }, (result) => {
+                            if(runtime.isSuccessResult(result)) {
+                              restarter.resume(result.result);
+                            }
+                            else {
+                              restarter.error(result.error);
+                            }
+                          });
+                        }
+                        else {
+                          fetch(fullUrl).then(async (response) => {
+                            CPO.documents.set(fullUrl, new CodeMirror.Doc(await response.text(), "pyret"));
+                          });
+                          return restarter.resume(runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(fullUrl, replGlobals));
+                        }
+                      });
+                  }
                 }
                 /*
                 else if (protocol === "js-http") {
@@ -232,12 +321,13 @@
     var defaultOptions = gmf(compileStructs, "default-compile-options");
 
     var replP = Q.defer();
+    const urlFileMode = window.URL_FILE_MODE || "all-remote";
     return runtime.safeCall(function() {
         return gmf(cpo, "make-repl").app(
             builtinsForPyret,
             pyRuntime,
             pyRealm,
-            runtime.makeFunction(makeFindModule));
+            runtime.makeFunction(() => makeFindModule(urlFileMode)));
       }, function(repl) {
         var jsRepl = {
           runtime: runtime.getField(pyRuntime, "runtime").val,
@@ -248,7 +338,8 @@
             var pyOptions = defaultOptions.extendWith({
               "type-check": options.typeCheck,
               "check-all": options.checkAll,
-              "on-compile": onCompile
+              "on-compile": onCompile,
+              "checks": "main"
             });
             var ret = Q.defer();
             setTimeout(function() {
@@ -302,23 +393,37 @@
     function withRepl(repl) {
       var runButton = $("#runButton");
 
-      var codeContainer = $("<div>").addClass("replMain");
-      $("#main").prepend(codeContainer);
-
       var replWidget =
           replUI.makeRepl(replContainer, repl, runtime, {
             breakButton: $("#breakButton"),
-            runButton: runButton
+            runButton: runButton,
+            runDropdown: $('#runDropdown')
           });
 
-      // NOTE(joe): assigned on window for debuggability
-      window.RUN_CODE = function(src, uiOpts, replOpts) {
-        doRunAction(src);
+      // NOTE(joe): assigned on window for embedding API in events.js, and for debugging
+      // NOTE(joe): Some of the CPO internals use Q promises. The withResolvers pattern
+      // promotes these to real JS promises that will work with e.g. async functions.
+      window.RUN_CODE = CPO.RUN_CODE = async function(src) {
+        const result = doRunAction(src, true);
+        const { promise, resolve, reject } = Promise.withResolvers();
+        result.then(resolve);
+        result.catch(reject);
+        return promise;
       };
+      window.RUN_INTERACTION = CPO.RUN_INTERACTION = async function(src) {
+        const result = replWidget.runner(src, true);
+        const { promise, resolve, reject } = Promise.withResolvers();
+        result.then(resolve);
+        result.catch(reject);
+        return promise;
+      };
+      window.replWidget = CPO.replWidget = replWidget;
 
+      /*
       $("#runDropdown").click(function() {
         $("#run-dropdown-content").toggle();
       });
+      */
 
       // CPO.editor is set in beforePyret.js
       var editor = CPO.editor;
@@ -327,15 +432,17 @@
       $("#select-run").click(function() {
         runButton.text("Run");
         currentAction = "run";
-        doRunAction(editor.cm.getValue());
-        $("#run-dropdown-content").hide();
+        doRunAction(editor.cm.getValue(), false);
+        $('#runDropdown').attr('aria-expanded', 'false');
+        $("#run-dropdown-content").attr('aria-hidden', 'true').hide();
       });
 
       $("#select-tc-run").click(function() {
         runButton.text("Type-check and Run");
         currentAction = "tc-and-run";
-        doRunAction(editor.cm.getValue());
-        $("#run-dropdown-content").hide();
+        doRunAction(editor.cm.getValue(), false);
+        $('#runDropdown').attr('aria-expanded', 'false');
+        $("#run-dropdown-content").attr('aria-hidden', 'true').hide();
       });
       /*
       $("#select-scsh").click(function() {
@@ -345,7 +452,10 @@
       $("#select-mcmh").click(function() {
         highlightMode = "mcmh"; $("#run-dropdown-content").hide();});
       */
-      function doRunAction(src) {
+      function doRunAction(src, synthetic) {
+        if(!synthetic) {
+          CPO.events.triggerOnRun();
+        }
         editor.cm.operation(function() {
           editor.cm.clearGutter("test-marker-gutter");
           var marks = editor.cm.getAllMarks();
@@ -353,7 +463,10 @@
           editor.cm.eachLine(function(lh){
             editor.cm.removeLineClass(lh, "background");});
           for(var i = 0; i < marks.length; i++) {
-            marks[i].clear();
+            const attribs = marks[i].attributes;
+            if(!(attribs && attribs.useline)) {
+              marks[i].clear();
+            }
           }
         });
         var sheet = document.getElementById("highlight-styles").sheet;
@@ -362,15 +475,13 @@
         }
         switch (currentAction) {
           case "run":
-            replWidget.runCode(src, {check: true, cm: editor.cm});
-            break;
+            return replWidget.runCode(src, {check: true, cm: editor.cm});
           case "tc-and-run":
-            replWidget.runCode(src, {check: true, cm: editor.cm, "type-check": true});
-            break;
+            return replWidget.runCode(src, {check: true, cm: editor.cm, "type-check": true});
         }
       }
 
-      runButton.on("click", function() { doRunAction(editor.cm.getValue()); });
+      runButton.on("click", function() { doRunAction(editor.cm.getValue(), false); });
 
       $(window).on("keyup", function(e) {
         if(e.keyCode === 27) { // "ESC"
@@ -425,54 +536,61 @@
 
       function changeFont(e){
         fontSize = parseInt($('#main').css("font-size"));
-        if ($(e.target).is("#font-plus") && (fontSize < 55)){
-          $('#main').css('font-size', '+=4');
-        }
-        else if ($(e.target).is("#font-minus") && (fontSize > 10)){
-          $('#main').css('font-size', '-=4');
+        if ($(e.target).is("#font-plus")) {
+          if (fontSize < 32) {
+            $('#main').css('font-size', '+=2');
+          } else if (fontSize < 55) {
+            $('#main').css('font-size', '+=4');
+          }
+        } else if ($(e.target).is("#font-minus")) {
+          if (fontSize > 32) {
+            $('#main').css('font-size', '-=4');
+          } else if (fontSize > 10) {
+            $('#main').css('font-size', '-=2');
+          }
         }
         editor.refresh();
-        $('#font-label').text("Font (" + $('#main').css("font-size") + ")");
+        replWidget.refresh();
+        updateFontSizeMenuText();
       }
-      $('#font-label').text("Font (" + $('#main').css("font-size") + ")");
+      function formatFontSizeMenuText(size) {
+        return "Font size: " + Math.round(parseFloat(size));
+      }
+      function updateFontSizeMenuText() {
+        $('#font-label').text(formatFontSizeMenuText($('#main').css("font-size")));
+      }
+      updateFontSizeMenuText();
 
+      var curTheme = document.getElementById("theme-select").value;
+      var themeSelect = $("#theme-select");
+
+      function applyTheme(theme) {
+        themeSelect.val(theme);
+        $("body").removeClass(curTheme).addClass(theme);
+        curTheme = theme;
+      }
+
+      if (localSettings.getItem('theme') !== null) {
+        applyTheme(localSettings.getItem('theme'));
+      } else {
+        localSettings.setItem('theme', curTheme);
+      }
+
+      $("#theme").change(function(e) {
+        var value = e.target.value;
+        applyTheme(value);
+
+        // track theme in local settings
+        localSettings.setItem('theme', curTheme);
+      });
+
+      localSettings.change("theme", function(_, newTheme) {
+        applyTheme(newTheme);
+      });
+      
       $('.notificationArea').click(function() {$('.notificationArea span').fadeOut(1000);});
 
-      editor.cm.on('beforeChange', curlyQuotes);
-
-      function curlyQuotes(instance, changeObj){
-        $('.notificationArea .curlyQ').remove();
-        curlybool = false;
-        if((changeObj.origin == "paste")){
-        var newText = jQuery.map(changeObj.text, function(str, i) {
-          curlybool = curlybool || (str.search(/[\u2018\u2019\u201C\u201D]/g) > -1);
-          str = str.replace(/\u201D/g, "\"")
-          str = str.replace(/\u201C/g, "\"")
-          str = str.replace(/\u2019/g, "\'")
-          str = str.replace(/\u2018/g, "\'")
-          return str;
-        });
-        if(curlybool){
-        curlyQUndo(changeObj.text, changeObj.from);
-        changeObj.update(undefined, undefined, newText);
-      }
-      }}
-
-      function curlyQUndo(oldText, from){
-        var lineN = oldText.length - 1
-        var to = {line: from.line + lineN, ch: from.ch + oldText[lineN].length}
-        console.log(from, to);
-        message = "Curly quotes converted"
-        var container = $('<div>').addClass("curlyQ")
-        var msg = $("<span>").addClass("curlyQ-msg").text(message);
-        var button = $("<span>").addClass("curlyQ-button").text("Click to Undo");
-        container.append(msg).append(button);
-        container.click(function(){
-          editor.cm.replaceRange(oldText, from, to);
-        });
-        $(".notificationArea").prepend(container);
-        container.delay(15000).fadeOut(3000);
-      }
+      editor.cm.on('beforeChange', function(instance, changeObj){textHandlers.autoCorrect(instance, changeObj, editor.cm);});
 
       // Resizable
       var replHeight = $( "#REPL" ).height();
@@ -490,6 +608,8 @@
       function leftResize(event, ui) {
         var leftWidth = (window.innerWidth - ui.size.width)
         $(".replMain").css("width", leftWidth + "px");
+        editor.refresh();
+        replWidget.refresh();
       }
 
       $( "#REPL" ).on( "resizestop", toPercent);
@@ -542,15 +662,91 @@
 
       // run the definitions area
       Mousetrap.bindGlobal('ctrl+enter', function(e){
-        doRunAction(editor.cm.getValue());
+        doRunAction(editor.cm.getValue(), false);
         CPO.autoSave();
         e.stopImmediatePropagation();
         e.preventDefault();
       });
 
+      function reciteHelp() {
+        CPO.sayAndForget(
+          "Press Escape to exit help. " +
+          "Control question mark: recite help. " +
+          "Control s: save. " +
+          "F6 and shift-F6: cycle focus through regions. " +
+          "F7 or Control enter: run the code in the definitions window. " +
+          "F11: insert image. " +
+          "Control left: move cursor left by one word. " +
+          "Control right: move cursor right by one word. " +
+          "Alt left: if cursor is just before a right parenthesis or end keyword, " +
+          "move left to matching delimiter, " +
+          "otherwise move left by one word. " +
+          "Alt right: like alt left, but move right. " +
+          "Escape left: synonym for alt left, in case alt key is used by browser. " +
+          "Escape right: synonym for alt right."
+        );
+      }
+
       // pull up help menu
       Mousetrap.bindGlobal('ctrl+shift+/', function(e) {
         $("#help-keys").fadeIn(100);
+        reciteHelp();
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      });
+
+      $('#ctrl-question').click(function() {
+        $('#help-keys').fadeIn(100);
+        reciteHelp();
+      });
+
+      Mousetrap.bindGlobal('f6', function(e) {
+        // cycle focus (forward)
+        CPO.cycleFocus();
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      });
+
+      Mousetrap.bindGlobal('shift+f6', function(e) {
+        // cycle focus backward
+        CPO.cycleFocus(true);
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      });
+
+      Mousetrap.bindGlobal('shift+tab', function(e) {
+        // cycle focus backward
+        //console.log('mouse shift+tab')
+        CPO.cycleFocus(true);
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      });
+
+      Mousetrap.bindGlobal('f7', function(e) {
+        doRunAction(editor.cm.getValue(), false);
+        CPO.autoSave();
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      });
+
+      Mousetrap.bindGlobal('f8', function(e) {
+        $('#breakButton').click();
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      });
+
+      Mousetrap.bindGlobal('f9', function(e) {
+        var sc = $('#shareContainer');
+        if (sc) {
+          var sl = sc[0].childNodes[0];
+          sl.click();
+        }
+        e.stopImmediatePropagation();
+        e.preventDefault();
+      });
+
+      Mousetrap.bindGlobal('f11', function(e) {
+        $('#insert').click();
         e.stopImmediatePropagation();
         e.preventDefault();
       });
@@ -573,27 +769,40 @@
         curImg = maxSoFar + 1;
       }
 
-      var photoPrompt = function() {
+      var photoPrompt = function(count) {
+        var plural = count > 1;
         return new modalPrompt({
-          title: "Select Import Style",
+          title: "Import options",
           style: "radio",
+          submitText: "Import",
+          cancelText: "Close",
           options: [
             {
-              message: "Import as Values",
+              message: "Value" + (plural ? "s" : ""),
               value: "values",
-              example: 'image-url("<URL>")\nimage-url("<URL>")\n# ...'
+              example: 'image-url("<URL>")'
+                + (plural ? '\n'
+                      + (count > 2 ? '# ' + (count-2) + ' more...\n': '')
+                      + 'image-url("<URL>")'
+                    : '')
             },
             {
-              message: "Import as Definitions",
+              message: "Definition" + (plural ? "s" : ""),
               value: "defs",
-              example: 'image0 = image-url("<URL>")\nimage1 = image-url("<URL>")\n# ...'
+              example: 'image' + (plural ? '0' : '') + ' = image-url("<URL>")'
+                + (plural ? 
+                      (count > 2 ? '\n# ' + (count-2) + ' more...' : '')
+                      + '\nimage' + (count-1) + ' = image-url("<URL>")'
+                    : '')
             },
             {
-              message: "Import as a List",
+              message: "List",
               value: "list",
-              example: '[list: image-url("<URL>"),\n'
-                + '       image-url("<URL>"),\n'
-                + '       # ...\n       ]'
+              example: '[list: image-url("<URL>")'
+                + (plural ? 
+                      ',\n' + (count > 2 ? '       # ' + (count-2) + ' more...\n' : '')
+                        + '       image-url("<URL>")]'
+                    : ']')
             }]
         });
       }
@@ -655,7 +864,7 @@
         else if (documents[0][picker.Document.TYPE] === picker.Type.PHOTO) {
 
           try {
-            photoPrompt().show(function(res) {
+            photoPrompt(documents.length).show(function(res) {
               // Name of event for CM undo history
               var origin = "+insertImage" + curImg;
               var asValues = (res === "values");
@@ -748,18 +957,7 @@
         onError: flashError,
         onInternalError: stickError,
         views: ["imageView"],
-        title: "Select an image to use"
-      });
-      var pyretPicker = new FilePicker({
-        onLoaded: function() {
-          $("#open").attr("disabled", false);
-          pyretPicker.openOn($("#open")[0], "click");
-        },
-        onSelect: handlePickerData,
-        onError: flashError,
-        onInternalError: stickError,
-        views: ["pyretView"],
-        title: "Select a Pyret file to use"
+        title: "Select images"
       });
 
       return runtime.makeModuleReturn({

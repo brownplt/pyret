@@ -18,8 +18,9 @@
     "pyret-base/js/runtime-util",
     "pyret-base/js/js-numbers"
   ],
-  theModule: function(runtime, _, uri, parsePyret, errordisplayLib, srclocLib, astLib, image, loadLib, util, jsnums) {
+  theModule: function(runtime, _, uri, parsePyret, errordisplayLib, srclocLib, astLib, imageLib, loadLib, util, jsnums) {
 
+    var image = runtime.getField(imageLib, "internal");
     var srcloc = runtime.getField(srclocLib, "values");
     var isSrcloc = runtime.getField(srcloc, "is-Srcloc");
     var AST = runtime.getField(astLib, "values");
@@ -38,6 +39,14 @@
       var a = 40*Math.cos(hue);
       var b = 40*Math.sin(hue)
       return converter([74, a, b]);
+    }
+
+    // Snap wants colors specified as "r,g,b(,a)" where each is [0-255]
+    var snapConverter = $.colorspaces.converter('CIELAB', 'sRGB')
+    function hueToSnapColor(hue) {
+      var a = 40*Math.cos(hue);
+      var b = 40*Math.sin(hue)
+      return snapConverter([74, a, b]).map(x => Math.floor(x * 255)).join(",")
     }
 
     var goldenAngle = 2.39996322972865332;
@@ -148,6 +157,7 @@
             inclusiveRight  : this.inclusiveRight,
             shared          : false,
             clearOnEnter    : true,
+            className       : "bg-highlighted",
             css             : "background-color:" + color });
         this.highlighter.on('clear', function (_) {
           this.highlighter === undefined;
@@ -178,11 +188,11 @@
       Position.fromPyretSrcloc = function (runtime, srcloc, loc, documents, options) {
         return runtime.ffi.cases(isSrcloc, "Srcloc", loc, {
           "builtin": function(_) {
-             throw new Error("Cannot get Position from builtin location", loc);
+             return new Error("Cannot get Position from builtin location", loc);
           },
           "srcloc": function(source, startL, startC, startCh, endL, endC, endCh) {
             if (!documents.has(source))
-              throw new Error("No document for this location: ", loc);
+              return new Error("No document for this location: ", loc);
             else {
               var extraCharForZeroWidthLocs = endCh === startCh ? 1 : 0;
               return new Position(
@@ -196,12 +206,16 @@
         });
       };
 
+      Position.existsFromSrcArray = function(locarray, documents, options) {
+        return locarray.length === 7 && documents.has(locarray[0]);
+      }
+
       Position.fromSrcArray = function (locarray, documents, options) {
         if (locarray.length === 7) {
           var extraCharForZeroWidthLocs = locarray[3] === locarray[6] ? 1 : 0;
           var source = locarray[0];
           if (!documents.has(source)) {
-            throw new Error("No document for this location: ", loc);
+            throw new Error("No document for this location: ", locarray);
           }
           return new Position(
             documents.get(source),
@@ -660,7 +674,7 @@
         forEach(function(frame) {
           container.append(frame);
         });
-      return expandable(container, "program execution trace");
+      return expandable(container, "program evaluation trace");
     }
 
     var allHighlightAnchors   = new Map();
@@ -680,6 +694,7 @@
         var cssColor = hueToRGB(color);
         for(var i = 0; i < anchors.length; i++) {
           anchors[i].css('background-color', cssColor);
+          anchors[i].addClass('highlight-on');
         }
         for(var i = 0; i < positions.length; i++) {
           positions[i].highlight(cssColor);
@@ -693,6 +708,7 @@
         var positions = allHighlightPositions.get(color);
         for(var i = 0; i < anchors.length; i++) {
           anchors[i].css('background-color', 'initial');
+          anchors[i].removeClass('highlight-on');
         }
         for(var i = 0; i < positions.length; i++) {
           positions[i].highlight(undefined);
@@ -842,8 +858,10 @@
             var contents = ffi.toArray(seq);
             return runtime.safeCall(function() {
               return runtime.eachLoop(runtime.makeFunction(function(i) {
-                if (i === contents.length - 1 && lastSep !== "") result.append(lastSep);
-                else if (i != 0 && separator !== "") result.append(separator);
+                if (i > 0) {
+                  if (i === contents.length - 1 && lastSep !== "") result.append(lastSep);
+                  else if (separator !== "") result.append(separator);
+                }
                 return runtime.safeCall(function() {
                   return help(contents[i], stack);
                 }, function(helpContents) {
@@ -871,7 +889,7 @@
             if (runtime.isPyretException(val.val)) {
               var e = val.val;
               var richStack = runtime.getField(loadLib, "internal")
-                .enrichStack(e, runtime.getField(loadLib, "internal").getModuleResultProgram(result));
+                .enrichStack(e, runtime.getField(loadLib, "internal").getModuleResultRealm(result));
               var maybeStackLoc   = makeMaybeStackLoc(runtime, documents, srcloc, richStack);
               var srclocAvaliable = makeSrclocAvaliable(runtime, documents, srcloc);
               var maybeLocToAST   = makeMaybeLocToAST(runtime, documents, srcloc);
@@ -895,15 +913,15 @@
                       }, "highlightSrcloc, then help");
                     }, function(containerResult) {
                       if (runtime.isSuccessResult(containerResult)) {
-                        var container = containerResult.result;
-                        if (container.length > 0) {
-                          container = $("<div>").append(container);
+                        var resContainer = containerResult.result;
+                        if (resContainer.length > 0) {
+                          resContainer = $("<div>").append(resContainer);
                         }
-                        container.addClass("compile-error");
-                        container.append(renderStackTrace(runtime,documents, srcloc, richStack));
-                        restarter.resume(container);
+                        resContainer.addClass("compile-error");
+                        resContainer.append(renderStackTrace(runtime,documents, srcloc, richStack));
+                        restarter.resume(resContainer);
                       } else {
-                        container.add($("<span>").addClass("output-failed")
+                        container.append($("<span>").addClass("output-failed")
                                       .text("<error rendering reason for exception; details logged to console>"));
                         console.error("help: embed: highlightSrcloc or help failed:", errorDisp);
                         console.log(errorDisp.exn);
@@ -911,7 +929,7 @@
                       }
                     });
                   } else {
-                    container.add($("<span>").addClass("output-failed")
+                    container.append($("<span>").addClass("output-failed")
                                   .text("<error rendering fancy-reason of exception; details logged to console>"));
                     console.error("help: embed: render-fancy-reason failed:", errorDisp);
                     console.log(errorDisp.exn);
@@ -1023,11 +1041,23 @@
               var hue = palette(id);
               var color = hue;
               var anchor = $("<a>").append(helpContents).addClass("highlight");
-              var positions = ffi.toArray(locs).
-                filter(isSrcloc).
-                map(function(loc){
-                  return Position.fromPyretSrcloc(runtime, srcloc, loc, documents);
-                });
+              var locsArray = ffi.toArray(locs);
+              var positions = locsArray
+                  .map(function(loc){
+                    return Position.fromPyretSrcloc(runtime, srcloc, loc, documents);
+                  })
+                  .filter((p) => p instanceof Position);
+              if (positions.length == 0 && locsArray.length > 0) {
+                // NOTE(Ben): Not 100% this is correct
+                // I had to tweak fromPyretSrcloc to not throw an Error when it received
+                // a srcloc that isn't in its known-set of documents, but instead to return
+                // a non-Position result.
+                // If locsArray isn't empty but positions is, then this should only occur
+                // when the sole srcloc comes from a document for which we don't have source
+                // (i.e. a builtin).  So, render it as a URL-looking srcloc.
+                return $("<span>").append(helpContents)
+                  .append(" (defined at ").append(drawSrcloc(documents, runtime, locsArray[0])).append(")");
+              }
               if (id < 0) {
                 messageHintedColors.add(color);
               }
@@ -1053,8 +1083,20 @@
                 window.requestAnimationFrame(function() {
                   logger.log("highlight_anchor_hover",
                     { error_id: context, anchor_id: id });
-                  if (positions[0] !== undefined)
-                    positions[0].hint();
+
+                  if (positions[0] !== undefined) {
+                    if(CPO.blocksIDE) {
+                      // Blocks editor case
+                      var snapColor = hueToSnapColor(color);
+                      CPO.blocksIDE.flashSpriteScriptAt(
+                        locsArray[0].dict['start-char'] + 1,
+                        undefined,
+                        snapColor);
+                    } else {
+                      // Non-Blocks editor
+                      positions[0].hint();
+                    }
+                  }
                   emphasize(color);
                 });
               });
@@ -1062,7 +1104,14 @@
                 logger.log("highlight_anchor_mouseleave",
                   { error_id: context, anchor_id: id });
                 window.requestAnimationFrame(function() {
-                  unhintLoc();
+                  // Blocks editor case
+                  if(CPO.blocksIDE) {
+                    if(positions.length > 0) {
+                      CPO.blocksIDE.unflashSpriteScripts();
+                    }
+                  } else {
+                    unhintLoc();
+                  }
                   demphasize(color);
                 });
               });
@@ -1140,22 +1189,31 @@
     // part of the decimal number, and a string to be
     // repeated. The 'rationalRepeat' class puts a bar over
     // the string.
-    $.fn.toggleFrac = function(frac, dec, decRpt) {
+    $.fn.toggleFrac = function(numrString, denrString, prePointString, postPointString, decRpt) {
+      //console.log('doing toggleFrac', numrString, denrString, 'P=', prePointString, 'p=', postPointString, 'r=', decRpt);
+      var ariaText;
       if (this.hasClass("fraction")) {
-        this.text(dec);
+        this.text(prePointString + '.' + postPointString);
+        ariaText = prePointString + ' point ' + postPointString;
         // This is the stuff to be repeated.  If the digit to
         // be repeated is just a zero, then ignore this
         // feature, and leave off the zero.
         if (decRpt != "0") {
           var cont = $("<span>").addClass("rationalNumber rationalRepeat").text(decRpt);
           this.append(cont);
+          if (postPointString != '') {
+            ariaText += ' with ';
+          }
+          ariaText += decRpt + ' repeating';
         }
         this.removeClass("fraction");
       } else {
-        this.text(frac);
+        this.text(numrString + '/' + denrString);
+        ariaText = numrString + ' over ' + denrString;
         this.addClass("fraction");
       }
-      return this;
+      ariaText += ', a rational number';
+      return ariaText;
     }
     // A function to use the class of a container to toggle
     // between the two representations of a string.  The
@@ -1274,6 +1332,7 @@
         e.stopPropagation();
       }
       renderers.renderImage = function renderImage(img) {
+        //console.log('doing renderImage');
         var container = $("<span>").addClass('replOutput');
         var imageDom;
         var maxWidth = $(document).width() * .375;
@@ -1314,16 +1373,22 @@
             $('*', originalImageDom).trigger({type : 'afterAttach'});
             e.stopPropagation();
           });
-          return container;
         } else {
           imageDom = img.toDomNode();
           container.append(imageDom);
           $(imageDom).trigger({type: 'afterAttach'});
           $('*', imageDom).trigger({type : 'afterAttach'});
-          return container;
         }
+        var ariaText = imageDom.ariaText;
+        container[0].ariaText = ariaText;
+        container[0].setAttribute('aria-label', ariaText);
+        //console.log('imageDom=', imageDom);
+        //console.log('imageDom.ariaText=', ariaText);
+        //console.log('renderImage retning', container);
+        return container;
       };
       renderers["number"] = function renderPNumber(num) {
+        var outText, ariaText;
         // If we're looking at a rational number, arrange it so that a
         // click will toggle the decimal representation of that
         // number.  Note that this feature abandons the convenience of
@@ -1332,21 +1397,29 @@
           // This function returns three string values, numerals to
           // appear before the decimal point, numerals to appear
           // after, and numerals to be repeated.
-          var decimal = jsnums.toRepeatingDecimal(num.numerator(), num.denominator(), runtime.NumberErrbacks);
-          var decimalString = decimal[0].toString() + "." + decimal[1].toString();
+          var numr = num.numerator();
+          var denr = num.denominator();
+          var decimal = jsnums.toRepeatingDecimal(numr, denr, runtime.NumberErrbacks);
+          var prePointString = decimal[0];
+          var postPointString = decimal[1];
+          var decRpt = decimal[2];
+          var numrString = numr.toString();
+          var denrString = denr.toString();
 
-          var outText = $("<span>").addClass("replToggle replTextOutput rationalNumber fraction")
+          outText = $("<span>").addClass("replToggle replTextOutput rationalNumber fraction")
             .text(num.toString());
 
-          outText.toggleFrac(num.toString(), decimalString, decimal[2]);
+          ariaText = outText.toggleFrac(numrString, denrString, prePointString, postPointString, decRpt);
 
           // On click, switch the representation from a fraction to
           // decimal, and back again.
           // https://stackoverflow.com/a/10390111/7501301
           var isClick = false;
-          outText.click(function() {
+          outText.click(function(e) {
             if (isClick) {
-              outText.toggleFrac(num.toString(), decimalString, decimal[2]);
+              var ariaText = outText.toggleFrac(numrString, denrString, prePointString, postPointString, decRpt);
+              outText[0].ariaText = ariaText;
+              outText[0].setAttribute('aria-label', ariaText);
             }
             e.stopPropagation();
           }).mousedown(function () {
@@ -1354,14 +1427,33 @@
           }).mousemove(function () {
             isClick = false;
           });
-
-          return outText;
+        } else if (jsnums.isRoughnum(num)) {
+          ariaText = num.n.toString() + ', roughly';
+          var roughnumStr = num.toString().slice(1);
+          outText = $('<span>').addClass('replTextOutput roughNumber');
+          outText.append($('<span>').addClass('cm-roughnum-start').text('~'));
+          outText.append($('<span>').addClass('cm-roughnum').text(roughnumStr));
         } else {
-          return renderText(sooper(renderers, "number", num));
+          ariaText = num.toString();
+          outText = renderText(sooper(renderers, "number", num));
         }
+        outText[0].ariaText = ariaText;
+        outText[0].setAttribute('aria-label', ariaText);
+        return outText;
       };
-      renderers["nothing"] = function(val) { return renderText("nothing"); }
-      renderers["boolean"] = function(val) { return renderText(sooper(renderers, "boolean", val)); };
+      renderers["nothing"] = function(val) {
+        var res = renderText("nothing");
+        res[0].ariaText = 'nothing';
+        res[0].setAttribute('aria-label', 'nothing');
+        return res;
+      }
+      renderers["boolean"] = function(val) {
+        var res = renderText(sooper(renderers, "boolean", val));
+        var ariaText = val + ', a boolean';
+        res[0].ariaText = ariaText;
+        res[0].setAttribute('aria-label', ariaText);
+        return res;
+      };
       renderers["string"] = function(val) {
         var outText = $("<span>").addClass("replTextOutput escaped");
         var escapedUnicode = '"' + replaceUnprintableStringChars(val, true) + '"';
@@ -1375,6 +1467,9 @@
             e.stopPropagation();
           });
         }
+        var ariaText = val + ', a string';
+        outText[0].ariaText = ariaText;
+        outText[0].setAttribute('aria-label', ariaText);
         return outText;
       };
       // Copied from runtime-anf, and tweaked.  Probably should be exported from runtime-anf instad
@@ -1383,12 +1478,8 @@
         for (i = 0; i < s.length; i++) {
           var val = s.charCodeAt(i);
           switch(val) {
-            case 7: ret.push('\\a'); break;
-            case 8: ret.push('\\b'); break;
             case 9: ret.push('\\t'); break;
             case 10: ret.push('\\n'); break;
-            case 11: ret.push('\\v'); break;
-            case 12: ret.push('\\f'); break;
             case 13: ret.push('\\r'); break;
             case 34: ret.push('\\"'); break;
             case 92: ret.push('\\\\'); break;
@@ -1437,7 +1528,8 @@
       };
       renderers["render-ref"] = function(top) {
         var container = $("<span>").addClass("replToggle replOutput has-icon");
-        container.append(top.done[0]);
+        var valueContainer = $("<span>").addClass("replRef")
+        container.append(valueContainer.append(top.done[0]));
         var warning = $("<img>")
           .attr("src", "/img/warning.gif")
           .attr("title", "May be stale! Click to refresh")
@@ -1449,16 +1541,12 @@
             return runtime.toReprJS(runtime.getRef(top.extra.origVal), renderers);
           }, function(newTop) {
             if(runtime.isSuccessResult(newTop)) {
-              warning.detach()
-              container.empty();
-              container.append(newTop.result);
-              container.append(warning);
+              valueContainer.empty();
+              valueContainer.append(newTop.result);
             }
             else {
-              warning.detach();
-              container.empty();
-              container.text("<error displaying value>");
-              container.append(warning);
+              valueContainer.empty();
+              valueContainer.text("<error displaying value>");
             }
           });
           e.stopPropagation();
@@ -1554,21 +1642,53 @@
         $(this).toggleClass("inlineCollection");
       }
       function helper(container, val, values, wantCommaAtEnd) {
-        if (runtime.ffi.isVSValue(val)) { container.append(values.pop()); }
-        else if (runtime.ffi.isVSStr(val)) { container.append($("<span>").text(runtime.unwrap(runtime.getField(val, "s")))); }
-        else if (runtime.ffi.isVSCollection(val)) {
+        var ariaText;
+        if (runtime.ffi.isVSValue(val)) {
+          //console.log('helper i', val);
+          var val1 = values.pop();
+          ariaText = val1[0].ariaText;
+          //console.log('ariaT=', ariaText);
+          container[0].ariaText = ariaText;
+          container[0].setAttribute('aria-label', ariaText);
+          container.append(val1); 
+        } else if (runtime.ffi.isVSStr(val)) {
+          //console.log('helper ii', val);
+          var val1 = runtime.unwrap(runtime.getField(val, "s"));
+          ariaText = val1;
+          //console.log('ariaT=', ariaText);
+          container[0].ariaText = ariaText;
+          container[0].setAttribute('aria-label', ariaText);
+          container.append($("<span>").text(val1)); 
+        } else if (runtime.ffi.isVSCollection(val)) {
+          //console.log('helper iii');
+          var name = runtime.unwrap(runtime.getField(val, "name"));
           container.addClass("replToggle");
-          container.append($("<span>").text("[" + runtime.unwrap(runtime.getField(val, "name")) + ": "));
+          container.append($("<span>").text("[" + name + ": "));
           var ul = $("<ul>").addClass("inlineCollection");
           container.append(ul);
           var items = runtime.ffi.toArray(runtime.getField(val, "items"));
-          groupItems(ul, items, values, 0, items.length);
+          var maxIdx = items.length;
+          ariaText = name + ' of ' + maxIdx + ' items: ';
+          var ariaElts = '';
+          //groupItems(ul, items, values, 0, items.length);
+          for (var i = 0; i < maxIdx; i++) {
+            var li = $("<li>").addClass("expanded");
+            var title = $("<span>").addClass("label").text("Item " + i);
+            var contents = $("<span>").addClass("contents");
+            ul.append(li.append(title).append(contents));
+            helper(contents, items[i], values, (i + 1 < maxIdx));
+            ariaElts += ', ' + contents[0].childNodes[0].ariaText;
+          }
+          ariaText += ariaElts;
+          container[0].ariaText = ariaText;
+          container[0].setAttribute('aria-label', ariaText);
           container.append($("<span>").text("]"));
           container.click(function(e) {
             ul.each(makeInline);
             e.stopPropagation();
           });
         } else if (runtime.ffi.isVSConstr(val)) {
+          //console.log('helper iv');
           container.append($("<span>").text(runtime.unwrap(runtime.getField(val, "name")) + "("));
           var items = runtime.ffi.toArray(runtime.getField(val, "args"));
           for (var i = 0; i < items.length; i++) {
@@ -1576,12 +1696,13 @@
           }
           container.append($("<span>").text(")"));
         } else if (runtime.ffi.isVSSeq(val)) {
+          //console.log('helper v');
           var items = runtime.ffi.toArray(runtime.getField(val, "items"));
           for (var i = 0; i < items.length; i++) {
             helper(container, items[i], values, (i + 1 < items.length));
           }
         } else if (runtime.ffi.isVSRow(val)) {
-
+          //console.log('helper vi');
           var cols = runtime.getField(val, "headers")
           var rowVals = runtime.getField(val, "values")
 
@@ -1589,8 +1710,8 @@
           table.className = "pyret-row";
           var thead = document.createElement("thead");
           var trow = document.createElement("tr");
-          thead.append(trow);
-          table.append(thead);
+          thead.appendChild(trow);
+          table.appendChild(thead);
 
           var colElts = [];
           for(var i = 0; i < cols.length; i++) {
@@ -1610,8 +1731,28 @@
           }
 
           container.append(table);
-
-        } else if (runtime.ffi.isVSTable(val)) {
+        } else if (runtime.ffi.isVSMatrix(val)) {
+          var table = document.createElement("table");
+          table.className = "pyret-table pyret-matrix";
+          var rows = runtime.getField(val, "rows");
+          var cols = runtime.getField(val, "cols");
+          var items = runtime.getField(val, "items");
+          var tbody = document.createElement("tbody");
+          table.appendChild(tbody);
+          var i = 0;
+          for (var row = 0; row < rows; row++) {
+            var tr = document.createElement("tr");
+            for (var col = 0; col < cols; col++) {
+              var datum = document.createElement("td");
+              helper($(datum), items[i++], values);
+              tr.appendChild(datum);
+            }
+            tbody.appendChild(tr);
+          }
+          container.append(table);
+        } else if (runtime.ffi.isVSTable(val) || runtime.ffi.isVSTableTruncated(val)) {
+          //console.log('helper vii; TABLE is', val, ' , container is', container);
+          ariaText = 'table with ';
           var showText = document.createElement("a");
           $(showText).html("<i class=\"fa fa-clipboard\" aria-hidden=\"true\"></i>");
           $(showText).css({
@@ -1628,6 +1769,7 @@
               return line.join("\t");
             });
             var allText = textLines.join("\n");
+            //console.log('allText =', allText);
 
             var textBox = $("<textarea>").addClass("auto-highlight");
             textBox.attr("editable", false);
@@ -1657,23 +1799,36 @@
             $(showText).hide();
           });
           var cols = runtime.getField(val, "headers")
+          var rows = runtime.getField(val, "rows")
+          ariaText +=
+            cols.length + ' column' +
+            (cols.length===1? '': 's') +
+            ' and ' +
+            rows.length + ' row' +
+            (rows.length===1? '': 's') +
+            ': ';
           var headers = document.createElement("thead");
           var header = document.createElement("tr");
           var headersAsText = [];
+          ariaText += 'header row: ';
           for(var i = 0; i < cols.length; i++) {
             var col = document.createElement("th");
             helper($(col), cols[i], values);
             header.appendChild(col);
             headersAsText.push($(col).text());
+            if (i !== 0) ariaText += ', ';
+            ariaText += col.ariaText;
           }
+          ariaText += '. ';
+          //console.log('headerText =', ariaText);
           tableAsText.push(headersAsText);
           headers.appendChild(header);
           table.appendChild(headers);
           var body = document.createElement("tbody");
-          var rows = runtime.getField(val, "rows")
           function drawRows(start, end) {
             var realEnd = end > rows.length ? rows.length : end;
             for(var i = start; i < realEnd; i++) {
+              ariaText += 'row ' + i + '. ';
               var rowAsText = [];
               tableAsText.push(rowAsText);
               var rowv  = rows[i]
@@ -1683,10 +1838,15 @@
                 helper($(cellel), rowv[j], values);
                 rowel.appendChild(cellel);
                 rowAsText.push($(cellel).text());
+                if (j !== 0) ariaText += ', ';
+                ariaText += cellel.ariaText;
               }
+              ariaText += '. ';
+              // console.log('rowAsText=', rowAsText);
               body.appendChild(rowel);
             }
           }
+          const footer = document.createElement("tfoot");
           var previewLimit = 10;
           if(rows.length <= previewLimit) {
             drawRows(0, rows.length);
@@ -1698,7 +1858,7 @@
             if (remaining == 1) {
               clickForMore.textContent = "Click to show the remaining row";
             } else {
-              clickForMore.textContent = "Click to show the remaining " + remaining + " rows...";
+              clickForMore.textContent = "Click to show the remaining " + remaining + " available rows...";
             }
             var clickTR = document.createElement("tr");
             var clickTD = document.createElement("td");
@@ -1706,22 +1866,42 @@
             clickTR.appendChild(clickTD);
             clickTD.appendChild(clickForMore);
             $(clickForMore).on("click", function() {
-              body.removeChild(clickTR);
+              footer.removeChild(clickTR);
               drawRows(previewLimit, rows.length);
             });
             drawRows(0, previewLimit);
-            body.appendChild(clickTR);
+            footer.appendChild(clickTR);
           }
+          if(runtime.ffi.isVSTableTruncated(val)) {
+            const totalRows = runtime.getField(val, "total-rows");
+            const truncatedRows = rows.length;
+            const truncatedTR = document.createElement("tr");
+            const truncatedTD = document.createElement("td");
+            truncatedTD.colSpan = String(rows[0].length);
+            truncatedTR.appendChild(truncatedTD);
+            const message = `(${truncatedRows} rows available of ${totalRows} in table)`;
+            truncatedTD.innerText = message;
+            footer.appendChild(truncatedTR);
+            ariaText += message;
+          }
+          ariaText += ' end table.';
           table.appendChild(body);
+          table.appendChild(footer);
+          container[0].ariaText = ariaText;
+          container[0].setAttribute('aria-label', ariaText);
           container.append(table);
 
         } else {
+          //console.log('helper viii');
           var items = runtime.ffi.toArray(runtime.getField(val, "items"));
           for (var i = 0; i < items.length; i++) {
             helper(container, items[i], values, (i + 1 < items.length));
           }
         }
-        if (wantCommaAtEnd) { container.append(collapsedComma()); }
+        if (wantCommaAtEnd) {
+          //console.log('adding a comma');
+          container.append(collapsedComma());
+        }
         return container;
       }
       function groupItems(ul, items, values, minIdx, maxIdx) {

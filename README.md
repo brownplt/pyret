@@ -25,6 +25,8 @@ Then you can run
 ```
 $ npm run local-install
 $ ln -s node_modules/pyret-lang pyret
+$ git submodule init
+$ git submodule update
 $ npm run build
 ```
 
@@ -82,6 +84,13 @@ At https://console.developers.google.com/project, make a project, then:
        Credentials -> Create Credentials -> API Key -> Browser Key
 
   Again, you should use `http://localhost:5000` as the referer for development.
+
+
+- Add the Google Drive API to your project and include the Google Drive API
+  Scopes in your OAuth consent screen.
+
+- For Google accounts to work locally, you'll also need to run a local Redis instance
+  and put its connection url into the `REDISCLOUD_URL` variable in `.env `
 
 ## Testing with Selenium
 

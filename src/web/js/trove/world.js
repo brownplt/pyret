@@ -47,12 +47,13 @@
       "is-world-config": ["arrow", [ "Any" ], "Boolean"],
       "is-key-equal": ["arrow", [ "String", "String" ], "Boolean"]
     },
-    aliases: {},
+    aliases: { "WorldConfigOption": ["local", "WorldConfigOption"] },
     datatypes: {
       "WorldConfigOption": ["data", "WorldConfigOption", ["a"], [], {}]
     }
   },
-  theModule: function(runtime, namespace, uri, imageLibrary, rawJsworld, VSlib, reactors, jsnums) {
+  theModule: function(runtime, namespace, uri, imageLibraryLib, rawJsworld, VSlib, reactors, jsnums) {
+    var imageLibrary = runtime.getField(imageLibraryLib, "internal");
     var isImage = imageLibrary.isImage;
     var VS = runtime.getField(VSlib, "values");
     var Reactors = runtime.getField(reactors, "values");
@@ -568,13 +569,13 @@
     DefaultDrawingOutput.prototype.toRawHandler = function(toplevelNode) {
       var that = this;
       var worldFunction = function(world, success) {
-        var textNode = jQuery("<pre>");
+        var hostNode = document.createElement("div");
         return runtime.safeCall(function() {
-          return runtime.toReprJS(world, runtime.ReprMethods._torepr);
-        }, function(str) {
-          textNode.text(str);
+          return runtime.toReprJS(world, runtime.ReprMethods['$cpo']);
+        }, function(jNode) {
+          $(hostNode).append(jNode);
           success([toplevelNode,
-                   rawJsworld.node_to_tree(textNode[0])]);
+                   rawJsworld.node_to_tree(hostNode)]);
         }, "default-drawing:toRepr");
       };
       var cssFunction = function(w, success) { success([]); }

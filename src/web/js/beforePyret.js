@@ -1,8 +1,13 @@
 /* global $ jQuery CPO CodeMirror storageAPI Q createProgramCollectionAPI makeShareAPI */
 
+var originalPageLoad = Date.now();
+console.log("originalPageLoad: ", originalPageLoad);
+
+const isEmbedded = window.parent !== window;
+
 var shareAPI = makeShareAPI(process.env.CURRENT_PYRET_RELEASE);
 
-var url = require('url.js');
+var url = window.url = require('url.js');
 var modalPrompt = require('./modal-prompt.js');
 window.modalPrompt = modalPrompt;
 
@@ -24,38 +29,54 @@ window.highlightMode = "mcmh"; // what is this for?
 window.clearFlash = function() {
   $(".notificationArea").empty();
 }
+window.whiteToBlackNotification = function() {
+  /*
+  $(".notificationArea .active").css("background-color", "white");
+  $(".notificationArea .active").animate({backgroundColor: "#111111" }, 1000);
+  */
+};
 window.stickError = function(message, more) {
+  CPO.sayAndForget(message);
   clearFlash();
-  var err = $("<div>").addClass("error").text(message);
+  var err = $("<span>").addClass("error").text(message);
   if(more) {
     err.attr("title", more);
   }
   err.tooltip();
   $(".notificationArea").prepend(err);
+  whiteToBlackNotification();
 };
 window.flashError = function(message) {
+  CPO.sayAndForget(message);
   clearFlash();
-  var err = $("<div>").addClass("error").text(message);
+  var err = $("<span>").addClass("error").text(message);
   $(".notificationArea").prepend(err);
+  whiteToBlackNotification();
   err.fadeOut(7000);
 };
 window.flashMessage = function(message) {
+  CPO.sayAndForget(message);
   clearFlash();
-  var msg = $("<div>").addClass("active").text(message);
+  var msg = $("<span>").addClass("active").text(message);
   $(".notificationArea").prepend(msg);
+  whiteToBlackNotification();
   msg.fadeOut(7000);
 };
 window.stickMessage = function(message) {
+  CPO.sayAndForget(message);
   clearFlash();
-  var err = $("<div>").addClass("active").text(message);
-  $(".notificationArea").prepend(err);
+  var msg = $("<span>").addClass("active").text(message);
+  $(".notificationArea").prepend(msg);
+  whiteToBlackNotification();
+};
+window.stickRichMessage = function(content) {
+  CPO.sayAndForget(content.text());
+  clearFlash();
+  $(".notificationArea").prepend($("<span>").addClass("active").append(content));
+  whiteToBlackNotification();
 };
 window.mkWarningUpper = function(){return $("<div class='warning-upper'>");}
 window.mkWarningLower = function(){return $("<div class='warning-lower'>");}
-
-$(window).bind("beforeunload", function() {
-  return "Because this page can load slowly, and you may have outstanding changes, we ask that you confirm before leaving the editor in case closing was an accident.";
-});
 
 var Documents = function() {
 
@@ -100,7 +121,9 @@ function checkVersion() {
     }
   });
 }
-window.setInterval(checkVersion, VERSION_CHECK_INTERVAL);
+if(!isEmbedded) {
+  window.setInterval(checkVersion, VERSION_CHECK_INTERVAL);
+}
 
 window.CPO = {
   save: function() {},
@@ -108,6 +131,9 @@ window.CPO = {
   documents : new Documents()
 };
 $(function() {
+  const CONTEXT_FOR_NEW_FILES = "use context starter2024\n";
+  const CONTEXT_PREFIX = /^use context\s+/;
+
   function merge(obj, extension) {
     var newobj = {};
     Object.keys(obj).forEach(function(k) {
@@ -132,7 +158,7 @@ $(function() {
       initial = options.initial;
     }
 
-    var textarea = jQuery("<textarea>");
+    var textarea = jQuery("<textarea aria-hidden='true'>");
     textarea.val(initial);
     container.append(textarea);
 
@@ -144,7 +170,7 @@ $(function() {
     var useFolding = !options.simpleEditor;
 
     var gutters = !options.simpleEditor ?
-      ["CodeMirror-linenumbers", "CodeMirror-foldgutter"] :
+      ["help-gutter", "CodeMirror-linenumbers", "CodeMirror-foldgutter"] :
       [];
 
     function reindentAllLines(cm) {
@@ -154,12 +180,20 @@ $(function() {
       });
     }
 
-    // place a vertical line at character 80 in code editor, not repl
+    var CODE_LINE_WIDTH = 100;
+
+    var rulers, rulersMinCol;
+
+    // place a vertical line in code editor, and not repl
     if (options.simpleEditor) {
       rulers = [];
     } else{
-      var rulers = [{color: "#317BCF", column: 80, lineStyle: "dashed"}];
+      rulers = [{color: "#317BCF", column: CODE_LINE_WIDTH, lineStyle: "dashed", className: "hidden"}];
+      rulersMinCol = CODE_LINE_WIDTH;
     }
+
+    const mac = CodeMirror.keyMap.default === CodeMirror.keyMap.macDefault;
+    const modifier = mac ? "Cmd" : "Ctrl";
 
     var cmOptions = {
       extraKeys: CodeMirror.normalizeKeyMap({
@@ -172,7 +206,8 @@ $(function() {
         "Esc Right": "goForwardSexp",
         "Alt-Right": "goForwardSexp",
         "Ctrl-Left": "goBackwardToken",
-        "Ctrl-Right": "goForwardToken"
+        "Ctrl-Right": "goForwardToken",
+        [`${modifier}-/`]: "toggleComment",
       }),
       indentUnit: 2,
       tabSize: 2,
@@ -185,26 +220,93 @@ $(function() {
       gutters: gutters,
       lineWrapping: true,
       logging: true,
-      rulers: rulers
+      rulers: rulers,
+      rulersMinCol: rulersMinCol,
+      scrollPastEnd: true,
     };
 
     cmOptions = merge(cmOptions, options.cmOptions || {});
 
     var CM = CodeMirror.fromTextArea(textarea[0], cmOptions);
 
+    function firstLineIsNamespace() {
+      const firstline = CM.getLine(0);
+      const match = firstline.match(CONTEXT_PREFIX);
+      return match !== null;
+    }
 
+    let namespacemark = null;
+    function setContextLine(newContextLine) {
+      var hasNamespace = firstLineIsNamespace();
+      if(!hasNamespace && namespacemark !== null) {
+        namespacemark.clear();
+      }
+      if(!hasNamespace) {
+        CM.replaceRange(newContextLine, { line:0, ch: 0}, {line: 0, ch: 0});
+      }
+      else {
+        CM.replaceRange(newContextLine, { line:0, ch: 0}, {line: 1, ch: 0});
+      }
+    }
+
+    if(!options.simpleEditor) {
+
+      const gutterQuestionWrapper = document.createElement("div");
+      gutterQuestionWrapper.className = "gutter-question-wrapper";
+      const gutterTooltip = document.createElement("span");
+      gutterTooltip.className = "gutter-question-tooltip";
+      gutterTooltip.innerText = "The use context line tells Pyret to load tools for a specific class context. It can be changed through the main Pyret menu. Most of the time you won't need to change this at all.";
+      const gutterQuestion = document.createElement("img");
+      gutterQuestion.src = window.APP_BASE_URL + "/img/question.png";
+      gutterQuestion.className = "gutter-question";
+      gutterQuestionWrapper.appendChild(gutterQuestion);
+      gutterQuestionWrapper.appendChild(gutterTooltip);
+      CM.setGutterMarker(0, "help-gutter", gutterQuestionWrapper);
+
+      CM.getWrapperElement().onmouseleave = function(e) {
+        CM.clearGutter("help-gutter");
+      }
+
+      // NOTE(joe): This seems to be the best way to get a hover on a mark: https://github.com/codemirror/CodeMirror/issues/3529
+      CM.getWrapperElement().onmousemove = function(e) {
+        var lineCh = CM.coordsChar({ left: e.clientX, top: e.clientY });
+        var markers = CM.findMarksAt(lineCh);
+        if (markers.length === 0) {
+          CM.clearGutter("help-gutter");
+        }
+        if (lineCh.line === 0 && markers[0] === namespacemark) {
+          CM.setGutterMarker(0, "help-gutter", gutterQuestionWrapper);
+        }
+        else {
+          CM.clearGutter("help-gutter");
+        }
+      }
+      CM.on("change", function(change) {
+        function doesNotChangeFirstLine(c) { return c.from.line !== 0; }
+        if(change.curOp.changeObjs && change.curOp.changeObjs.every(doesNotChangeFirstLine)) { return; }
+        var hasNamespace = firstLineIsNamespace();
+        if(hasNamespace) {
+          if(namespacemark) { namespacemark.clear(); }
+          namespacemark = CM.markText({line: 0, ch: 0}, {line: 1, ch: 0}, { attributes: { useline: true }, className: "useline", atomic: true, inclusiveLeft: true, inclusiveRight: false });
+        }
+      });
+    }
     if (useLineNumbers) {
       CM.display.wrapper.appendChild(mkWarningUpper()[0]);
       CM.display.wrapper.appendChild(mkWarningLower()[0]);
     }
 
+    getTopTierMenuitems();
+
     return {
       cm: CM,
+      setContextLine: setContextLine,
       refresh: function() { CM.refresh(); },
       run: function() {
         runFun(CM.getValue());
       },
-      focus: function() { CM.focus(); }
+      focus: function() { CM.focus(); },
+      focusCarousel: null //initFocusCarousel
     };
   };
   CPO.RUN_CODE = function() {
@@ -238,14 +340,26 @@ $(function() {
   });
 
   storageAPI = storageAPI.then(function(api) { return api.api; });
+  $("#fullConnectButton").click(function() {
+    reauth(
+      false,  // Don't do an immediate load (this will require login)
+      true    // Use the full set of scopes for this login
+    );
+  });
   $("#connectButton").click(function() {
     $("#connectButton").text("Connecting...");
     $("#connectButton").attr("disabled", "disabled");
+    $('#connectButtonli').attr('disabled', 'disabled');
+    $("#connectButton").attr("tabIndex", "-1");
+    //$("#topTierUl").attr("tabIndex", "0");
+    getTopTierMenuitems();
     storageAPI = createProgramCollectionAPI("code.pyret.org", false);
     storageAPI.then(function(api) {
       api.collection.then(function() {
         $(".loginOnly").show();
         $(".logoutOnly").hide();
+        document.activeElement.blur();
+        $("#bonniemenubutton").focus();
         setUsername($("#username"));
         if(params["get"] && params["get"]["program"]) {
           var toLoad = api.api.getFileById(params["get"]["program"]);
@@ -259,6 +373,11 @@ $(function() {
       api.collection.fail(function() {
         $("#connectButton").text("Connect to Google Drive");
         $("#connectButton").attr("disabled", false);
+        $('#connectButtonli').attr('disabled', false);
+        //$("#connectButton").attr("tabIndex", "0");
+        document.activeElement.blur();
+        $("#connectButton").focus();
+        //$("#topTierUl").attr("tabIndex", "-1");
       });
     });
     storageAPI = storageAPI.then(function(api) { return api.api; });
@@ -272,33 +391,60 @@ $(function() {
     If the url does have a #program or #share, the promise is for the
     corresponding object.
   */
-  var initialProgram = storageAPI.then(function(api) {
-    var programLoad = null;
-    if(params["get"] && params["get"]["program"]) {
-      enableFileOptions();
-      programLoad = api.getFileById(params["get"]["program"]);
-      programLoad.then(function(p) { showShareContainer(p); });
-    }
-    if(params["get"] && params["get"]["share"]) {
-      logger.log('shared-program-load',
-        {
-          id: params["get"]["share"]
+  let initialProgram;
+  if(params["get"] && params["get"]["shareurl"]) {
+    initialProgram = makeUrlFile(params["get"]["shareurl"]);
+  }
+  else {
+    initialProgram = storageAPI.then(function(api) {
+      var programLoad = null;
+      if(params["get"] && params["get"]["program"]) {
+        enableFileOptions();
+        programLoad = api.getFileById(params["get"]["program"]);
+        programLoad.then(function(p) { showShareContainer(p); });
+      }
+      else if(params["get"] && params["get"]["share"]) {
+        logger.log('shared-program-load',
+          {
+            id: params["get"]["share"]
+          });
+        programLoad = api.getSharedFileById(params["get"]["share"]);
+        programLoad.then(function(file) {
+          // NOTE(joe): If the current user doesn't own or have access to this file
+          // (or isn't logged in) this will simply fail with a 401, so we don't do
+          // any further permission checking before showing the link.
+          file.getOriginal().then(function(response) {
+            console.log("Response for original: ", response);
+            var original = $("#open-original").show().off("click");
+            var id = response.result.value;
+            original.removeClass("hidden");
+            original.click(function() {
+              window.open(window.APP_BASE_URL + "/editor#program=" + id, "_blank");
+            });
+          });
         });
-      programLoad = api.getSharedFileById(params["get"]["share"]);
-    }
-    if(programLoad) {
-      programLoad.fail(function(err) {
-        console.error(err);
-        window.stickError("The program failed to load.");
-      });
-      return programLoad;
-    } else {
+      }
+      else {
+        programLoad = null;
+      }
+      if(programLoad) {
+        programLoad.fail(function(err) {
+          console.error(err);
+          window.stickError("The program failed to load.");
+        });
+        return programLoad;
+      } else {
+        return null;
+      }
+    }).catch(e => {
+      console.error("storageAPI failed to load, proceeding without saving programs: ", e);
       return null;
-    }
-  });
+    });
+  }
 
   function setTitle(progName) {
     document.title = progName + " - code.pyret.org";
+    $("#showFilename").text("File: " + progName);
   }
   CPO.setTitle = setTitle;
 
@@ -319,6 +465,53 @@ $(function() {
     $("#download").append(downloadElt);
   });
 
+  function showModal(currentContext) {
+    function drawElement(input) {
+      const element = $("<div>");
+      const greeting = $("<p>");
+      const shared = $("<tt>shared-gdrive(...)</tt>");
+      const currentContextElt = $("<tt>" + currentContext + "</tt>");
+      greeting.append("Enter the context to use for the program, or choose “Cancel” to keep the current context of ", currentContextElt, ".");
+      const essentials = $("<tt>starter2024</tt>");
+      const list = $("<ul>")
+        .append($("<li>").append("The default is ", essentials, "."))
+        .append($("<li>").append("You might use something like ", shared, " if one was provided as part of a course."));
+      element.append(greeting);
+      element.append($("<p>").append(list));
+      const useContext = $("<tt>use context</tt>").css({ 'flex-grow': '0', 'padding-right': '1em' });
+      const inputWrapper = $("<div>").append(input).css({ 'flex-grow': '1' });
+      const entry = $("<div>").css({
+        display: 'flex',
+        'flex-direction': 'row',
+        'justify-content': 'flex-start',
+        'align-items': 'baseline'
+      });
+      entry.append(useContext).append(inputWrapper);
+      element.append(entry);
+      return element;
+    }
+    const namespaceResult = new modalPrompt({
+        title: "Choose a Context",
+        style: "text",
+        options: [
+          {
+            drawElement: drawElement,
+            submitText: "Change Namespace",
+            defaultValue: currentContext
+          }
+        ]
+      });
+    namespaceResult.show((result) => {
+      if(!result) { return; }
+      CPO.editor.setContextLine("use context " + result.trim() + "\n");
+    });
+  }
+  $("#choose-context").on("click", function() {
+    const firstLine = CPO.editor.cm.getLine(0);
+    const contextLen = firstLine.match(CONTEXT_PREFIX);
+    showModal(contextLen === null ? "" : firstLine.slice(contextLen[0].length));
+  });
+
   var TRUNCATE_LENGTH = 20;
 
   function truncateName(name) {
@@ -329,6 +522,7 @@ $(function() {
   function updateName(p) {
     filename = p.getName();
     $("#filename").text(" (" + truncateName(filename) + ")");
+    $("#filename").attr('title', filename);
     setTitle(filename);
     showShareContainer(p);
   }
@@ -338,9 +532,146 @@ $(function() {
     return p.then(function(prog) {
       if(prog !== null) {
         updateName(prog);
+        if(prog.shared) {
+          window.stickMessage("You are viewing a shared program. Any changes you make will not be saved. You can use File -> Save a copy to save your own version with any edits you make.");
+        }
         return prog.getContents();
       }
+      else {
+        if(params["get"]["editorContents"] && !(params["get"]["program"] || params["get"]["share"])) {
+          return params["get"]["editorContents"];
+        }
+        else {
+          return CONTEXT_FOR_NEW_FILES;
+        }
+      }
     });
+  }
+
+  function say(msg, forget) {
+    if (msg === "") return;
+    var announcements = document.getElementById("announcementlist");
+    var li = document.createElement("LI");
+    li.appendChild(document.createTextNode(msg));
+    announcements.insertBefore(li, announcements.firstChild);
+    if (forget) {
+      setTimeout(function() {
+        announcements.removeChild(li);
+      }, 1000);
+    }
+  }
+
+  function sayAndForget(msg) {
+    console.log('doing sayAndForget', msg);
+    say(msg, true);
+  }
+
+  function cycleAdvance(currIndex, maxIndex, reverseP) {
+    var nextIndex = currIndex + (reverseP? -1 : +1);
+    nextIndex = ((nextIndex % maxIndex) + maxIndex) % maxIndex;
+    return nextIndex;
+  }
+
+  function populateFocusCarousel(editor) {
+    if (!editor.focusCarousel) {
+      editor.focusCarousel = [];
+    }
+    var fc = editor.focusCarousel;
+    var docmain = document.getElementById("main");
+    if (!fc[0]) {
+      var toolbar = document.getElementById('Toolbar');
+      fc[0] = toolbar;
+      //fc[0] = document.getElementById("headeronelegend");
+      //getTopTierMenuitems();
+      //fc[0] = document.getElementById('bonniemenubutton');
+    }
+    if (!fc[1]) {
+      var docreplMain = docmain.getElementsByClassName("replMain");
+      var docreplMain0;
+      if (docreplMain.length === 0) {
+        docreplMain0 = undefined;
+      } else if (docreplMain.length === 1) {
+        docreplMain0 = docreplMain[0];
+      } else {
+        for (var i = 0; i < docreplMain.length; i++) {
+          if (docreplMain[i].innerText !== "") {
+            docreplMain0 = docreplMain[i];
+          }
+        }
+      }
+      fc[1] = docreplMain0;
+    }
+    if (!fc[2]) {
+      var docrepl = docmain.getElementsByClassName("repl");
+      var docreplcode = docrepl[0].getElementsByClassName("prompt-container")[0].
+        getElementsByClassName("CodeMirror")[0];
+      fc[2] = docreplcode;
+    }
+    if (!fc[3]) {
+      fc[3] = document.getElementById("announcements");
+    }
+  }
+
+  function cycleFocus(reverseP) {
+    //console.log('doing cycleFocus', reverseP);
+    var editor = this.editor;
+    populateFocusCarousel(editor);
+    var fCarousel = editor.focusCarousel;
+    var maxIndex = fCarousel.length;
+    var currentFocusedElt = fCarousel.find(function(node) {
+      if (!node) {
+        return false;
+      } else {
+        return node.contains(document.activeElement);
+      }
+    });
+    var currentFocusIndex = fCarousel.indexOf(currentFocusedElt);
+    var nextFocusIndex = currentFocusIndex;
+    var focusElt;
+    do {
+      nextFocusIndex = cycleAdvance(nextFocusIndex, maxIndex, reverseP);
+      focusElt = fCarousel[nextFocusIndex];
+      //console.log('trying focusElt', focusElt);
+    } while (!focusElt);
+
+    var focusElt0;
+    if (focusElt.classList.contains('toolbarregion')) {
+      //console.log('settling on toolbar region')
+      getTopTierMenuitems();
+      focusElt0 = document.getElementById('bonniemenubutton');
+    } else if (focusElt.classList.contains("replMain") ||
+      focusElt.classList.contains("CodeMirror")) {
+      //console.log('settling on defn window')
+      var textareas = focusElt.getElementsByTagName("textarea");
+      //console.log('txtareas=', textareas)
+      //console.log('txtarea len=', textareas.length)
+      if (textareas.length === 0) {
+        //console.log('I')
+        focusElt0 = focusElt;
+      } else if (textareas.length === 1) {
+        //console.log('settling on inter window')
+        focusElt0 = textareas[0];
+      } else {
+        //console.log('settling on defn window')
+        /*
+        for (var i = 0; i < textareas.length; i++) {
+          if (textareas[i].getAttribute('tabIndex')) {
+            focusElt0 = textareas[i];
+          }
+        }
+        */
+        focusElt0 = textareas[textareas.length-1];
+        focusElt0.removeAttribute('tabIndex');
+      }
+    } else {
+      //console.log('settling on announcement region', focusElt)
+      focusElt0 = focusElt;
+    }
+
+    document.activeElement.blur();
+    focusElt0.click();
+    focusElt0.focus();
+    //console.log('(cf)docactelt=', document.activeElement);
   }
 
   var programLoaded = loadProgram(initialProgram);
@@ -348,9 +679,12 @@ $(function() {
   var programToSave = initialProgram;
 
   function showShareContainer(p) {
+    //console.log('called showShareContainer');
     if(!p.shared) {
       $("#shareContainer").empty();
+      $('#publishli').show();
       $("#shareContainer").append(shareAPI.makeShareLink(p));
+      getTopTierMenuitems();
     }
   }
 
@@ -370,7 +704,6 @@ $(function() {
   function menuItemDisabled(id) {
     return $("#" + id).hasClass("disabled");
   }
-
 
   function newEvent(e) {
     window.open(window.APP_BASE_URL + "/editor");
@@ -393,17 +726,18 @@ $(function() {
 
   */
   function save(newFilename) {
+    var useName, create;
     if(newFilename !== undefined) {
-      var useName = newFilename;
-      var create = true;
+      useName = newFilename;
+      create = true;
     }
     else if(filename === false) {
       filename = "Untitled";
-      var create = true;
+      create = true;
     }
     else {
-      var useName = filename; // A closed-over variable
-      var create = false;
+      useName = filename; // A closed-over variable
+      create = false;
     }
     window.stickMessage("Saving...");
     var savedProgram = programToSave.then(function(p) {
@@ -454,6 +788,8 @@ $(function() {
       var saveAsPrompt = new modalPrompt({
         title: "Save a copy",
         style: "text",
+        submitText: "Save",
+        narrow: true,
         options: [
           {
             message: "The name for the copy:",
@@ -478,6 +814,8 @@ $(function() {
       var renamePrompt = new modalPrompt({
         title: "Rename this file",
         style: "text",
+        narrow: true,
+        submitText: "Rename",
         options: [
           {
             message: "The new name for the file:",
@@ -520,37 +858,497 @@ $(function() {
   $("#rename").click(rename);
   $("#saveas").click(saveAs);
 
-  shareAPI.makeHoverMenu($("#filemenu"), $("#filemenuContents"), false, function(){});
-  shareAPI.makeHoverMenu($("#bonniemenu"), $("#bonniemenuContents"), false, function(){});
+  var focusableElts = $(document).find('#header .focusable');
+  //console.log('focusableElts=', focusableElts)
+  var theToolbar = $(document).find('#Toolbar');
+
+  function getTopTierMenuitems() {
+    //console.log('doing getTopTierMenuitems')
+    var topTierMenuitems = $(document).find('#header ul li.topTier').toArray();
+    topTierMenuitems = topTierMenuitems.
+                        filter(elt => !(elt.style.display === 'none' ||
+                                        elt.getAttribute('disabled') === 'disabled'));
+    var numTopTierMenuitems = topTierMenuitems.length;
+    for (var i = 0; i < numTopTierMenuitems; i++) {
+      var ithTopTierMenuitem = topTierMenuitems[i];
+      var iChild = $(ithTopTierMenuitem).children().first();
+      //console.log('iChild=', iChild);
+      iChild.find('.focusable').
+        attr('aria-setsize', numTopTierMenuitems.toString()).
+        attr('aria-posinset', (i+1).toString());
+    }
+    return topTierMenuitems;
+  }
+
+  function updateEditorHeight() {
+    var toolbarHeight = document.getElementById('topTierUl').offsetHeight;
+    // gets bumped to 67 on initial resize perturbation, but actual value is indeed 40
+    if (toolbarHeight < 80) toolbarHeight = 40;
+    toolbarHeight += 'px';
+    document.getElementById('REPL').style.paddingTop = toolbarHeight;
+    var docMain = document.getElementById('main');
+    var docReplMain = docMain.getElementsByClassName('replMain');
+    if (docReplMain.length !== 0) {
+      docReplMain[0].style.paddingTop = toolbarHeight;
+    }
+  }
+
+  $(window).on('resize', updateEditorHeight);
+
+  function insertAriaPos(submenu) {
+    //console.log('doing insertAriaPos', submenu)
+    var arr = submenu.toArray();
+    //console.log('arr=', arr);
+    var len = arr.length;
+    for (var i = 0; i < len; i++) {
+      var elt = arr[i];
+      //console.log('elt', i, '=', elt);
+      elt.setAttribute('aria-setsize', len.toString());
+      elt.setAttribute('aria-posinset', (i+1).toString());
+    }
+  }
+
+
+  document.addEventListener('click', function () {
+    hideAllTopMenuitems();
+  });
+
+  theToolbar.click(function (e) {
+    e.stopPropagation();
+  });
+
+  theToolbar.keydown(function (e) {
+    //console.log('toolbar keydown', e);
+    //most any key at all
+    var kc = e.keyCode;
+    if (kc === 27) {
+      // escape
+      hideAllTopMenuitems();
+      //console.log('calling cycleFocus from toolbar')
+      CPO.cycleFocus();
+      e.stopPropagation();
+    } else if (kc === 9 || kc === 37 || kc === 38 || kc === 39 || kc === 40) {
+      // an arrow
+      var target = $(this).find('[tabIndex=-1]');
+      getTopTierMenuitems();
+      document.activeElement.blur(); //needed?
+      target.first().focus(); //needed?
+      //console.log('docactelt=', document.activeElement);
+      e.stopPropagation();
+    } else {
+      hideAllTopMenuitems();
+    }
+  });
+
+  function clickTopMenuitem(e) {
+    hideAllTopMenuitems();
+    var thisElt = $(this);
+    //console.log('doing clickTopMenuitem on', thisElt);
+    var topTierUl = thisElt.closest('ul[id=topTierUl]');
+    if (thisElt[0].hasAttribute('aria-hidden')) {
+      return;
+    }
+    if (thisElt[0].getAttribute('disabled') === 'disabled') {
+      return;
+    }
+    //var hiddenP = (thisElt[0].getAttribute('aria-expanded') === 'false');
+    //hiddenP always false?
+    var thisTopMenuitem = thisElt.closest('li.topTier');
+    //console.log('thisTopMenuitem=', thisTopMenuitem);
+    var t1 = thisTopMenuitem[0];
+    var submenuOpen = (thisElt[0].getAttribute('aria-expanded') === 'true');
+    if (!submenuOpen) {
+      //console.log('hiddenp true branch');
+      hideAllTopMenuitems();
+      thisTopMenuitem.children('ul.submenu').attr('aria-hidden', 'false').show();
+      thisTopMenuitem.children().first().find('[aria-expanded]').attr('aria-expanded', 'true');
+    } else {
+      //console.log('hiddenp false branch');
+      thisTopMenuitem.children('ul.submenu').attr('aria-hidden', 'true').hide();
+      thisTopMenuitem.children().first().find('[aria-expanded]').attr('aria-expanded', 'false');
+    }
+    e.stopPropagation();
+  }
+
+  var expandableElts = $(document).find('#header [aria-expanded]');
+  expandableElts.click(clickTopMenuitem);
+
+  function hideAllTopMenuitems() {
+    //console.log('doing hideAllTopMenuitems');
+    var topTierUl = $(document).find('#header ul[id=topTierUl]');
+    topTierUl.find('[aria-expanded]').attr('aria-expanded', 'false');
+    topTierUl.find('ul.submenu').attr('aria-hidden', 'true').hide();
+  }
+
+  var nonexpandableElts = $(document).find('#header .topTier > div > button:not([aria-expanded])');
+  nonexpandableElts.click(hideAllTopMenuitems);
+
+  function switchTopMenuitem(destTopMenuitem, destElt) {
+    //console.log('doing switchTopMenuitem', destTopMenuitem, destElt);
+    //console.log('dtmil=', destTopMenuitem.length);
+    hideAllTopMenuitems();
+    if (destTopMenuitem && destTopMenuitem.length !== 0) {
+      var elt = destTopMenuitem[0];
+      var eltId = elt.getAttribute('id');
+      destTopMenuitem.children('ul.submenu').attr('aria-hidden', 'false').show();
+      destTopMenuitem.children().first().find('[aria-expanded]').attr('aria-expanded', 'true');
+    }
+    if (destElt) {
+      //destElt.attr('tabIndex', '0').focus();
+      destElt.focus();
+    }
+  }
+
+  var showingHelpKeys = false;
+
+  function showHelpKeys() {
+    showingHelpKeys = true;
+    $('#help-keys').fadeIn(100);
+    reciteHelp();
+  }
+
+  focusableElts.keydown(function (e) {
+    //console.log('focusable elt keydown', e);
+    var kc = e.keyCode;
+    //$(this).blur(); // Delete?
+    var withinSecondTierUl = true;
+    var topTierUl = $(this).closest('ul[id=topTierUl]');
+    var secondTierUl = $(this).closest('ul.submenu');
+    if (secondTierUl.length === 0) {
+      withinSecondTierUl = false;
+    }
+    if (kc === 27) {
+      //console.log('escape pressed i')
+      $('#help-keys').fadeOut(500);
+    }
+    if (kc === 27 && withinSecondTierUl) { // escape
+      var destTopMenuitem = $(this).closest('li.topTier');
+      var possElts = destTopMenuitem.find('.focusable:not([disabled])').filter(':visible');
+      switchTopMenuitem(destTopMenuitem, possElts.first());
+      e.stopPropagation();
+    } else if (kc === 39) { // rightarrow
+      //console.log('rightarrow pressed');
+      var srcTopMenuitem = $(this).closest('li.topTier');
+      //console.log('srcTopMenuitem=', srcTopMenuitem);
+      srcTopMenuitem.children().first().find('.focusable').attr('tabIndex', '-1');
+      var topTierMenuitems = getTopTierMenuitems();
+      //console.log('ttmi* =', topTierMenuitems);
+      var ttmiN = topTierMenuitems.length;
+      var j = topTierMenuitems.indexOf(srcTopMenuitem[0]);
+      //console.log('j initial=', j);
+      for (var i = (j + 1) % ttmiN; i !== j; i = (i + 1) % ttmiN) {
+        var destTopMenuitem = $(topTierMenuitems[i]);
+        //console.log('destTopMenuitem(a)=', destTopMenuitem);
+        var possElts = destTopMenuitem.find('.focusable:not([disabled])').filter(':visible');
+        //console.log('possElts=', possElts)
+        if (possElts.length > 0) {
+          //console.log('final i=', i);
+          //console.log('landing on', possElts.first());
+          switchTopMenuitem(destTopMenuitem, possElts.first());
+          e.stopPropagation();
+          break;
+        }
+      }
+    } else if (kc === 37) { // leftarrow
+      //console.log('leftarrow pressed');
+      var srcTopMenuitem = $(this).closest('li.topTier');
+      //console.log('srcTopMenuitem=', srcTopMenuitem);
+      srcTopMenuitem.children().first().find('.focusable').attr('tabIndex', '-1');
+      var topTierMenuitems = getTopTierMenuitems();
+      //console.log('ttmi* =', topTierMenuitems);
+      var ttmiN = topTierMenuitems.length;
+      var j = topTierMenuitems.indexOf(srcTopMenuitem[0]);
+      //console.log('j initial=', j);
+      for (var i = (j + ttmiN - 1) % ttmiN; i !== j; i = (i + ttmiN - 1) % ttmiN) {
+        var destTopMenuitem = $(topTierMenuitems[i]);
+        //console.log('destTopMenuitem(b)=', destTopMenuitem);
+        //console.log('i=', i)
+        var possElts = destTopMenuitem.find('.focusable:not([disabled])').filter(':visible');
+        //console.log('possElts=', possElts)
+        if (possElts.length > 0) {
+          //console.log('final i=', i);
+          //console.log('landing on', possElts.first());
+          switchTopMenuitem(destTopMenuitem, possElts.first());
+          e.stopPropagation();
+          break;
+        }
+      }
+    } else if (kc === 38) { // uparrow
+      //console.log('uparrow pressed');
+      var submenu;
+      if (withinSecondTierUl) {
+        var nearSibs = $(this).closest('div').find('.focusable').filter(':visible');
+        //console.log('nearSibs=', nearSibs);
+        var myId = $(this)[0].getAttribute('id');
+        //console.log('myId=', myId);
+        submenu = $([]);
+        var thisEncountered = false;
+        for (var i = nearSibs.length - 1; i >= 0; i--) {
+          if (thisEncountered) {
+            //console.log('adding', nearSibs[i]);
+            submenu = submenu.add($(nearSibs[i]));
+          } else if (nearSibs[i].getAttribute('id') === myId) {
+            thisEncountered = true;
+          }
+        }
+        //console.log('submenu so far=', submenu);
+        var farSibs = $(this).closest('li').prevAll().find('div:not(.disabled)')
+          .find('.focusable').filter(':visible');
+        submenu = submenu.add(farSibs);
+        if (submenu.length === 0) {
+          submenu = $(this).closest('li').closest('ul').find('div:not(.disabled)')
+          .find('.focusable').filter(':visible').last();
+        }
+        if (submenu.length > 0) {
+          submenu.last().focus();
+        } else {
+          /*
+          //console.log('no actionable submenu found')
+          var topmenuItem = $(this).closest('ul.submenu').closest('li')
+          .children().first().find('.focusable:not([disabled])').filter(':visible');
+          if (topmenuItem.length > 0) {
+            topmenuItem.first().focus();
+          } else {
+            //console.log('no actionable topmenuitem found either')
+          }
+          */
+        }
+      }
+      e.stopPropagation();
+    } else if (kc === 40) { // downarrow
+      //console.log('downarrow pressed');
+      var submenuDivs;
+      var submenu;
+      if (!withinSecondTierUl) {
+        //console.log('1st tier')
+        submenuDivs = $(this).closest('li').children('ul').find('div:not(.disabled)');
+        submenu = submenuDivs.find('.focusable').filter(':visible');
+        insertAriaPos(submenu);
+      } else {
+        //console.log('2nd tier')
+        var nearSibs = $(this).closest('div').find('.focusable').filter(':visible');
+        //console.log('nearSibs=', nearSibs);
+        var myId = $(this)[0].getAttribute('id');
+        //console.log('myId=', myId);
+        submenu = $([]);
+        var thisEncountered = false;
+        for (var i = 0; i < nearSibs.length; i++) {
+          if (thisEncountered) {
+            //console.log('adding', nearSibs[i]);
+            submenu = submenu.add($(nearSibs[i]));
+          } else if (nearSibs[i].getAttribute('id') === myId) {
+            thisEncountered = true;
+          }
+        }
+        //console.log('submenu so far=', submenu);
+        var farSibs = $(this).closest('li').nextAll().find('div:not(.disabled)')
+          .find('.focusable').filter(':visible');
+        submenu = submenu.add(farSibs);
+        if (submenu.length === 0) {
+          submenu = $(this).closest('li').closest('ul').find('div:not(.disabled)')
+            .find('.focusable').filter(':visible');
+        }
+      }
+      //console.log('submenu=', submenu)
+      if (submenu.length > 0) {
+        submenu.first().focus();
+      } else {
+        //console.log('no actionable submenu found')
+      }
+      e.stopPropagation();
+    } else if (kc === 27) {
+      //console.log('esc pressed');
+      hideAllTopMenuitems();
+      if (showingHelpKeys) {
+        showingHelpKeys = false;
+      } else {
+        //console.log('calling cycleFocus ii')
+        CPO.cycleFocus();
+      }
+      e.stopPropagation();
+      e.preventDefault();
+      //$(this).closest('nav').closest('main').focus();
+    } else if (kc === 9 ) {
+      if (e.shiftKey) {
+        hideAllTopMenuitems();
+        CPO.cycleFocus(true);
+      }
+      e.stopPropagation();
+      e.preventDefault();
+    } else if (kc === 13 || kc === 17 || kc === 20 || kc === 32) {
+      // 13=enter 17=ctrl 20=capslock 32=space
+      //console.log('stopprop 1')
+      e.stopPropagation();
+    } else if (kc >= 112 && kc <= 123) {
+      //console.log('doprop 1')
+      // fn keys
+      // go ahead, propagate
+    } else if (e.ctrlKey && kc === 191) {
+      //console.log('C-? pressed')
+      showHelpKeys();
+      e.stopPropagation();
+    } else {
+      //console.log('stopprop 2')
+      e.stopPropagation();
+    }
+    //e.stopPropagation();
+  });
+
+  // shareAPI.makeHoverMenu($("#filemenu"), $("#filemenuContents"), false, function(){});
+  // shareAPI.makeHoverMenu($("#bonniemenu"), $("#bonniemenuContents"), false, function(){});
+
 
   var codeContainer = $("<div>").addClass("replMain");
+  codeContainer.attr("role", "region").
+    attr("aria-label", "Definitions");
+    //attr("tabIndex", "-1");
   $("#main").prepend(codeContainer);
+
+
+  if(params["get"]["hideDefinitions"]) {
+    $(".replMain").attr("aria-hidden", true).attr("tabindex", '-1');
+  }
+  
+  const isControlled = params["get"]["controlled"];
+  const hasWarnOnExit = ("warnOnExit" in params["get"]);
+  const skipWarning = hasWarnOnExit && (params["get"]["warnOnExit"] === "false");
+
+  if(!isControlled && !skipWarning) {
+    $(window).bind("beforeunload", function() {
+      return "Because this page can load slowly, and you may have outstanding changes, we ask that you confirm before leaving the editor in case closing was an accident.";
+    });
+  }
 
   CPO.editor = CPO.makeEditor(codeContainer, {
     runButton: $("#runButton"),
     simpleEditor: false,
     run: CPO.RUN_CODE,
-    initialGas: 100
+    initialGas: 100,
+    scrollPastEnd: true,
   });
   CPO.editor.cm.setOption("readOnly", "nocursor");
+  CPO.editor.cm.setOption("longLines", new Map());
+  function removeShortenedLine(lineHandle) {
+    var rulers = CPO.editor.cm.getOption("rulers");
+    var rulersMinCol = CPO.editor.cm.getOption("rulersMinCol");
+    var longLines = CPO.editor.cm.getOption("longLines");
+    if (lineHandle.text.length <= rulersMinCol) {
+      lineHandle.rulerListeners.forEach((f, evt) => lineHandle.off(evt, f));
+      longLines.delete(lineHandle);
+      // console.log("Removed ", lineHandle);
+      refreshRulers();
+    }
+  }
+  function deleteLine(lineHandle) {
+    var longLines = CPO.editor.cm.getOption("longLines");
+    lineHandle.rulerListeners.forEach((f, evt) => lineHandle.off(evt, f));
+    longLines.delete(lineHandle);
+    // console.log("Removed ", lineHandle);
+    refreshRulers();
+  }
+  function refreshRulers() {
+    var rulers = CPO.editor.cm.getOption("rulers");
+    var longLines = CPO.editor.cm.getOption("longLines");
+    var minLength;
+    if (longLines.size === 0) {
+      minLength = 0; // if there are no long lines, then we don't care about showing any rulers
+    } else {
+      minLength = Number.MAX_VALUE;
+      longLines.forEach(function(lineNo, lineHandle) {
+        if (lineHandle.text.length < minLength) { minLength = lineHandle.text.length; }
+      });
+    }
+    for (var i = 0; i < rulers.length; i++) {
+      if (rulers[i].column >= minLength) {
+        rulers[i].className = "hidden";
+      } else {
+        rulers[i].className = undefined;
+      }
+    }
+    // gotta set the option twice, or else CM short-circuits and ignores it
+    CPO.editor.cm.setOption("rulers", undefined);
+    CPO.editor.cm.setOption("rulers", rulers);
+  }
+  CPO.editor.cm.on('changes', function(instance, changeObjs) {
+    var minLine = instance.lastLine(), maxLine = 0;
+    var rulersMinCol = instance.getOption("rulersMinCol");
+    var longLines = instance.getOption("longLines");
+    changeObjs.forEach(function(change) {
+      if (minLine > change.from.line) { minLine = change.from.line; }
+      if (maxLine < change.from.line + change.text.length) { maxLine = change.from.line + change.text.length; }
+    });
+    var changed = false;
+    instance.eachLine(minLine, maxLine, function(lineHandle) {
+      if (lineHandle.text.length > rulersMinCol) {
+        if (!longLines.has(lineHandle)) {
+          changed = true;
+          longLines.set(lineHandle, lineHandle.lineNo());
+          lineHandle.rulerListeners = new Map([
+            ["change", removeShortenedLine],
+            ["delete", function() { // needed because the delete handler gets no arguments at all
+              deleteLine(lineHandle);
+            }]
+          ]);
+          lineHandle.rulerListeners.forEach((f, evt) => lineHandle.on(evt, f));
+          // console.log("Added ", lineHandle);
+        }
+      } else {
+        if (longLines.has(lineHandle)) {
+          changed = true;
+          longLines.delete(lineHandle);
+          // console.log("Removed ", lineHandle);
+        }
+      }
+    });
+    if (changed) {
+      refreshRulers();
+    }
+  });
 
   programLoaded.then(function(c) {
     CPO.documents.set("definitions://", CPO.editor.cm.getDoc());
+    if(c === "") {
+      c = CONTEXT_FOR_NEW_FILES;
+    }
 
-    // NOTE(joe): Clearing history to address https://github.com/brownplt/pyret-lang/issues/386,
-    // in which undo can revert the program back to empty
-    CPO.editor.cm.clearHistory();
-    CPO.editor.cm.setValue(c);
+    if (c.startsWith("<scriptsonly")) {
+      // this is blocks file. Open it with /blocks
+      window.location.href = window.location.href.replace('editor', 'blocks');
+    }
+
+    if(!params["get"]["controlled"]) {
+      // NOTE(joe): Clearing history to address https://github.com/brownplt/pyret-lang/issues/386,
+      // in which undo can revert the program back to empty
+      CPO.editor.cm.setValue(c);
+      CPO.editor.cm.clearHistory();
+    }
+    else {
+      const hideWhenControlled = [
+        "#fullConnectButton",
+        "#logging",
+        "#logout"
+      ];
+      const removeWhenControlled = [
+        "#connectButtonli",
+      ];
+      hideWhenControlled.forEach(s => $(s).hide());
+      removeWhenControlled.forEach(s => $(s).remove());
+    }
+
   });
 
-  programLoaded.fail(function() {
+  programLoaded.fail(function(error) {
+    console.error("Program contents did not load: ", error);
     CPO.documents.set("definitions://", CPO.editor.cm.getDoc());
   });
 
+  console.log("About to load Pyret: ", originalPageLoad, Date.now());
+
   var pyretLoad = document.createElement('script');
-  console.log(process.env.PYRET);
-  pyretLoad.src = process.env.PYRET;
+  console.log(window.PYRET);
+  pyretLoad.src = window.PYRET;
   pyretLoad.type = "text/javascript";
+  pyretLoad.setAttribute("crossorigin", "anonymous");
   document.body.appendChild(pyretLoad);
 
   var pyretLoad2 = document.createElement('script');
@@ -602,8 +1400,7 @@ $(function() {
   }
 
   $(pyretLoad).on("error", function(e) {
-    logFailureAndManualFetch(process.env.PYRET, e);
-    console.log(process.env);
+    logFailureAndManualFetch(window.PYRET, e);
     pyretLoad2.src = process.env.PYRET_BACKUP;
     pyretLoad2.type = "text/javascript";
     document.body.appendChild(pyretLoad2);
@@ -618,6 +1415,20 @@ $(function() {
 
   });
 
+  function makeEvent() {
+    const handlers = [];
+    function on(handler) {
+      handlers.push(handler);
+    }
+    function trigger(v) {
+      handlers.forEach(h => h(v));
+    }
+    return [on, trigger];
+  }
+  let [ onRun, triggerOnRun ] = makeEvent();
+  let [ onInteraction, triggerOnInteraction ] = makeEvent();
+  let [ onLoad, triggerOnLoad ] = makeEvent();
+
   programLoaded.fin(function() {
     CPO.editor.focus();
     CPO.editor.cm.setOption("readOnly", false);
@@ -628,5 +1439,34 @@ $(function() {
   CPO.updateName = updateName;
   CPO.showShareContainer = showShareContainer;
   CPO.loadProgram = loadProgram;
+  CPO.storageAPI = storageAPI;
+  CPO.cycleFocus = cycleFocus;
+  CPO.say = say;
+  CPO.sayAndForget = sayAndForget;
+  CPO.events = {
+    onRun,
+    triggerOnRun,
+    onInteraction,
+    triggerOnInteraction,
+    onLoad,
+    triggerOnLoad
+  };
 
+  // We never want interactions to be hidden *when running code*.
+  // So hideInteractions should go away as soon as run is clicked
+  CPO.events.onRun(() => { document.body.classList.remove("hideInteractions"); });
+
+  let initialState = params["get"]["initialState"];
+
+  if (typeof acquireVsCodeApi === "function") {
+    window.MESSAGES = makeEvents({
+      CPO: CPO,
+      sendPort: acquireVsCodeApi(),
+      receivePort: window,
+      initialState
+    });
+  }
+  else if((window.parent && (window.parent !== window)) || process.env.NODE_ENV === "development") {
+    window.MESSAGES = makeEvents({ CPO: CPO, sendPort: window.parent, receivePort: window, initialState });
+  }
 });

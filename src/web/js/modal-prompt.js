@@ -14,12 +14,13 @@ define("cpo/modal-prompt", ["q"], function(Q) {
 
   function autoHighlightBox(text) {
     var textBox = $("<input type='text'>").addClass("auto-highlight");
-    textBox.attr("size", text.length);
-    textBox.attr("editable", false);
+    textBox.attr("readonly", "readonly");
     textBox.on("focus", function() { $(this).select(); });
     textBox.on("mouseup", function() { $(this).select(); });
     textBox.val(text);
     return textBox;
+
+
   }
 
   // Allows asynchronous requesting of prompts
@@ -65,6 +66,7 @@ define("cpo/modal-prompt", ["q"], function(Q) {
       this.elts = $($.parseHTML("<div></div>")).addClass("choiceContainer");
     }
     this.title = $(".modal-header > h3", this.modal);
+    this.modalContent = $(".modal-content", this.modal);
     this.closeButton = $(".close", this.modal);
     this.submitButton = $(".submit", this.modal);
     if(this.options.submitText) {
@@ -73,6 +75,14 @@ define("cpo/modal-prompt", ["q"], function(Q) {
     else {
       this.submitButton.text("Submit");
     }
+    if(this.options.cancelText) {
+      this.closeButton.text(this.options.cancelText);
+    }
+    else {
+      this.closeButton.text("Cancel");
+    }
+    this.modalContent.toggleClass("narrow", !!this.options.narrow);
+
     this.isCompiled = false;
     this.deferred = Q.defer();
     this.promise = this.deferred.promise;
@@ -101,6 +111,12 @@ define("cpo/modal-prompt", ["q"], function(Q) {
       this.submitButton.show();
     }
     this.closeButton.click(this.onClose.bind(this));
+    this.modal.keypress(function(e) {
+      if(e.which == 13) {
+        this.submitButton.click();
+        return false;
+      }
+    }.bind(this));
     this.submitButton.click(this.onSubmit.bind(this));
     var docClick = (function(e) {
       // If the prompt is active and the background is clicked,
@@ -121,6 +137,7 @@ define("cpo/modal-prompt", ["q"], function(Q) {
     this.title.text(this.options.title);
     this.populateModal();
     this.modal.css('display', 'block');
+    $(":input:enabled:visible:first", this.modal).focus().select()
 
     if (callback) {
       return this.promise.then(callback);
@@ -164,7 +181,7 @@ define("cpo/modal-prompt", ["q"], function(Q) {
           value: option.example,
           mode: 'pyret',
           lineNumbers: false,
-          readOnly: true
+          readOnly: "nocursor" // this makes it readOnly & not focusable as a form input
         });
         setTimeout(function(){
           cm.refresh();
@@ -187,10 +204,15 @@ define("cpo/modal-prompt", ["q"], function(Q) {
     }
 
     function createTextElt(option) {
-      var elt = $("<div>");
-      elt.append($("<span>").addClass("textLabel").text(option.message));
-//      elt.append($("<span>").text("(" + option.details + ")"));
-      elt.append($("<input type='text'>").val(option.defaultValue));
+      var elt = $("<div class=\"pyret-modal-text\">");
+      const input = $("<input id='modal-prompt-text' type='text'>").val(option.defaultValue);
+      if(option.drawElement) {
+        elt.append(option.drawElement(input));
+      }
+      else {
+        elt.append($("<label for='modal-prompt-text'>").addClass("textLabel").text(option.message));
+        elt.append(input);
+      }
       return elt;
     }
 
@@ -242,7 +264,6 @@ define("cpo/modal-prompt", ["q"], function(Q) {
     $("input[type='radio']", optionElts[0]).attr('checked', true);
     this.elts.append(optionElts);
     $(".modal-body", this.modal).empty().append(this.elts);
-    optionElts[0].focus();
   };
 
   /**
