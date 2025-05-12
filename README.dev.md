@@ -12,3 +12,15 @@ npm run compile
 npx vscode-test-web --browserType=chromium --extensionDevelopmentPath . ./sampleFiles/
 ```
 
+User settings for avoiding diff views using the fancy editor; put in
+`.vscode/settings.json` (or set via the menu):
+
+```
+{
+    "workbench.editorAssociations": {
+        "{git}:/**/*.{arr}": "default"
+    }
+}
+```
+
+(Courtesy of https://github.com/microsoft/vscode-discussions/discussions/799)
