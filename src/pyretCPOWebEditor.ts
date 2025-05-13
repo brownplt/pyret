@@ -131,13 +131,14 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
       changeDocumentSubscription.dispose();
     });
 
-    function sendRpcResponse(data: { callbackId: string }, result: any) {
+    type RPCResponse = { result: any, } | { exception: any };
+    function sendRpcResponse(data: { callbackId: string }, result: RPCResponse) {
       webviewPanel.webview.postMessage({
         protocol: 'pyret-rpc',
         data: {
           type: 'rpc-response',
           callbackId: data.callbackId,
-          result: result
+          ...result
         }
       });
     }
@@ -154,11 +155,15 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
         console.log("RPC:", e.data);
         const module = (knownModules as any)[e.data.module];
         if (!(module as any)[e.data.method]) {
-          sendRpcResponse(e.data, { error: "Unknown method" });
+          sendRpcResponse(e.data, { exception: "Unknown method" });
         }
         else {
-          const result = await (module as any)[e.data.method](...e.data.args);
-          sendRpcResponse(e.data, result);
+          try {
+            const result = await (module as any)[e.data.method](...e.data.args);
+            sendRpcResponse(e.data, { result });
+          } catch (exn) {
+            sendRpcResponse(e.data, { exception: String(exn) });
+          }
         }
         return;
       }
