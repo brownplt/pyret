@@ -42,6 +42,9 @@
     },
     { "import-type": "builtin",
       name: "cpo-builtins"
+    },
+    { "import-type": "builtin",
+      name: "filesystem-internal"
     }
   ],
   nativeRequires: [
@@ -59,7 +62,7 @@
   },
   theModule: function(runtime, namespace, uri,
                       compileLib, compileStructs, pyRepl, urlLoc, cpo, replUI, textHandlers,
-                      parsePyret, runtimeLib, loadLib, builtinModules, cpoBuiltins,
+                      parsePyret, runtimeLib, loadLib, builtinModules, cpoBuiltins, fsInternal,
                       gdriveLocators, fileLocator, http, cpoModules, _modalPrompt,
                       rtLib) {
 
@@ -236,8 +239,9 @@
                       });
                       return runtime.getField(runtime.getField(urlLoc, "values"), "url-locator").app(fullUrl, replGlobals);
                     case "all-local":
-                      window.MESSAGES.sendRpc('fs', 'readFile', [fullUrl, 'utf8']).then((contents) => {
-                        CPO.documents.set(fullUrl, new CodeMirror.Doc(contents, "pyret"));
+                      fsInternal.readFile(fullUrl).then((contents) => {
+                        const strContents = Buffer.from(contents).toString('utf8');
+                        CPO.documents.set(fullUrl, new CodeMirror.Doc(strContents, "pyret"));
                       });
                       var fileLocatorConstructor = fileLocator.makeFileLocatorConstructor(window.MESSAGES.sendRpc, runtime, compileLib, compileStructs, parsePyret, builtinModules, cpo);
                       return fileLocatorConstructor.makeFileLocator(arr[1]);
@@ -245,8 +249,9 @@
                       return runtime.pauseStack(async (restarter) => {
                         const exists = await window.MESSAGES.sendRpc('fs', 'exists', [arr[1]]);
                         if(exists) {
-                          window.MESSAGES.sendRpc('fs', 'readFile', [fullUrl, 'utf8']).then((contents) => {
-                            CPO.documents.set(fullUrl, new CodeMirror.Doc(contents, "pyret"));
+                          fsInternal.readFile(fullUrl).then((contents) => {
+                            const strContents = Buffer.from(contents).toString('utf8');
+                            CPO.documents.set(fullUrl, new CodeMirror.Doc(strContents, "pyret"));
                           });
                           return runtime.runThunk(() => {
                             var fileLocatorConstructor = fileLocator.makeFileLocatorConstructor(window.MESSAGES.sendRpc, runtime, compileLib, compileStructs, parsePyret, builtinModules, cpo);
