@@ -5,10 +5,10 @@ function commSetup(config, messageCallback, gainControl, loseControl) {
   const callbacks = {};
   let callbackCounter = 0;
 
-  function sendRpc(data, callback) {
+  function sendRpc(data, resolve, reject) {
     callbackCounter += 1;
     const callbackId = `${callbackCounter}-${data.module}-${data.method}`
-    callbacks[callbackId] = callback;
+    callbacks[callbackId] = [ resolve, reject ];
     config.sendPort.postMessage({
       protocol: "pyret-rpc",
       data: { ...data, callbackId }
@@ -64,9 +64,19 @@ function commSetup(config, messageCallback, gainControl, loseControl) {
         return;
       }
       else {
-        const callback = callbacks[event.data.data.callbackId];
+        const [resolve, reject] = callbacks[event.data.data.callbackId];
         delete callbacks[event.data.data.callbackId];
-        callback(event.data.data.result);
+        if('exception' in event.data.data) {
+          reject(event.data.data.exception); 
+        }
+        else if('result' in event.data.data) {
+          resolve(event.data.data.result);
+        }
+        else {
+          const message = "Internal RPC error, unknown RPC response event (no result or exception)";
+          console.error(message, event);
+          reject({ event, message });
+        }
       }
       return;
     }
@@ -472,7 +482,7 @@ function makeEvents(config) {
     sendRpc: (module, method, args) => {
       const { promise, resolve, reject } = Promise.withResolvers();
       const data = { module, method, args }
-      comm.sendRpc(data, resolve);
+      comm.sendRpc(data, resolve, reject);
       return promise;
     }
   }
