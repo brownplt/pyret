@@ -51,12 +51,16 @@
         async function resolve(...paths) {
             return window.MESSAGES.sendRpc('path', 'resolve', paths);
         }
+        async function join(...paths) {
+            return window.MESSAGES.sendRpc('path', 'join', paths);
+        }
         return runtime.makeJSModuleReturn({
             readFile: wrap(readFile),
             writeFile: wrap(writeFile),
             stat: wrap(stat),
             resolve: wrap(resolve),
             exists: wrap(exists),
+            join: wrap(join),
             init: initializedOK
         });
     }
