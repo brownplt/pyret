@@ -12,12 +12,14 @@ const path = {
   dirname: (d : string) : string => {
     return String(Utils.dirname(URI.parse(d)));
   },
-  resolve: (base : string, p : string) : string => {
-    if(p === undefined) { return Utils.resolvePath(URI.parse(base)).fsPath; }
-    return String(Utils.resolvePath(URI.parse(base), p));
+  resolve: (...paths : string[]) : string => {
+    if(paths.length === 0) { throw new Error("No paths provided to path.resolve"); }
+    if(paths.length === 1) { return Utils.resolvePath(URI.parse(paths[0])).fsPath; }
+    return String(Utils.resolvePath(URI.parse(paths[0]), ...paths.slice(1)));
   },
-  join: (p1 : string, p2 : string) : string => {
-    return String(Utils.joinPath(URI.parse(p1), p2));
+  join: (...paths : string[]) : string => {
+    if(paths.length === 0) { throw new Error("No paths provided to path.join"); }
+    return String(Utils.joinPath(URI.parse(paths[0]), ...paths.slice(1)));
   }
 };
 
