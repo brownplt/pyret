@@ -70,15 +70,6 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
           await vscode.workspace.fs.writeFile(pathUri, buffer);
           return;
         },
-        'exists': async (p: string) => {
-          const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
-          try {
-            await vscode.workspace.fs.stat(pathUri);
-            return true;
-          } catch(e) {
-            return false;
-          }
-        },
         'readFile': async (p: string, opts : ReadFileOpts) => {
           const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
           const contents = await vscode.workspace.fs.readFile(pathUri);
@@ -88,6 +79,16 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
           else {
             return contents;
           }
+        },
+        'stat': async (p: string) => {
+          const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
+          const stat = await vscode.workspace.fs.stat(pathUri);
+          return {
+            mtime: stat.mtime,
+            ctime: stat.ctime,
+            size: stat.size,
+            native: stat
+          };
         }
       },
       'path': {
