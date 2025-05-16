@@ -17,11 +17,13 @@
             console.error("No MESSAGES object found. filesystem-internal on the web requires an embedding context to provide RPC calls.");
         }
         function wrap(f) {
-            return async function(...args) {
-                if(!initializedOK) {
-                    throw runtime.ffi.makeMessageException(`filesystem-internal: Cannot call ${f.name} because fs.promises not available`)
+            if(initializedOK) {
+                return f; 
+            }
+            else {
+                return async function() {
+                    throw runtime.ffi.makeMessageException(`filesystem-internal: Cannot call ${f.name} because filesystem-internal on the web requires an embedding context to provide RPC calls`)
                 }
-                return f(...args);
             }
         }
         async function readFile(p) {
@@ -33,6 +35,19 @@
         async function stat(p) {
             return window.MESSAGES.sendRpc('fs', 'stat', [p]);
         }
+        async function exists(p) {
+            try {
+                const _ = await stat(p);
+                return true;
+            }
+            catch(e) {
+                if(String(e).includes("EntryNotFound")) {
+                    return false;
+                }
+                console.error(e);
+                throw e;
+            }
+        }
         async function resolve(...paths) {
             return window.MESSAGES.sendRpc('path', 'resolve', paths);
         }
@@ -41,6 +56,7 @@
             writeFile: wrap(writeFile),
             stat: wrap(stat),
             resolve: wrap(resolve),
+            exists: wrap(exists),
             init: initializedOK
         });
     }
