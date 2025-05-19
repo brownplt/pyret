@@ -270,7 +270,7 @@
                         return fileLocatorConstructor.makeFileLocator(arr[1]);
                       case "local-if-present":
                         return runtime.pauseStack(async (restarter) => {
-                          const exists = await window.MESSAGES.sendRpc('fs', 'exists', [arr[1]]);
+                          const exists = await fsInternal.exists(arr[1]);
                           if(exists) {
                             fsInternal.readFile(fullUrl).then((contents) => {
                               const strContents = Buffer.from(contents).toString('utf8');

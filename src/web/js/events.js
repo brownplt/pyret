@@ -66,10 +66,10 @@ function commSetup(config, messageCallback, gainControl, loseControl) {
       else {
         const [resolve, reject] = callbacks[event.data.data.callbackId];
         delete callbacks[event.data.data.callbackId];
-        if('exception' in event.data.data) {
+        if(event.data.data.resultType === 'exception') {
           reject(event.data.data.exception); 
         }
-        else if('result' in event.data.data) {
+        else if(event.data.data.resultType === 'value') {
           resolve(event.data.data.result);
         }
         else {
