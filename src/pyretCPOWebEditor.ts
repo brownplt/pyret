@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { URI, Utils } from 'vscode-uri';
 import { Buffer } from 'buffer';
 import { render } from 'mustache';
@@ -6,22 +7,6 @@ const code = require('../build/web/views/editor.html');
 
 // import * as fs from 'fs';
 // import * as path from 'path';
-
-const fs = vscode.workspace.fs;
-const path = {
-  dirname: (d : string) : string => {
-    return String(Utils.dirname(URI.parse(d)));
-  },
-  resolve: (...paths : string[]) : string => {
-    if(paths.length === 0) { throw new Error("No paths provided to path.resolve"); }
-    if(paths.length === 1) { return Utils.resolvePath(URI.parse(paths[0])).fsPath; }
-    return String(Utils.resolvePath(URI.parse(paths[0]), ...paths.slice(1)));
-  },
-  join: (...paths : string[]) : string => {
-    if(paths.length === 0) { throw new Error("No paths provided to path.join"); }
-    return String(Utils.joinPath(URI.parse(paths[0]), ...paths.slice(1)));
-  }
-};
 
 export function getNonce() {
   let text = '';
@@ -68,12 +53,13 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
     const knownModules = {
       'fs': {
         'writeFile': async (p: string, buffer : Buffer) => {
-          const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
+          const pathUri = Utils.resolvePath(Utils.dirname(document.uri), p);
           await vscode.workspace.fs.writeFile(pathUri, buffer);
           return;
         },
         'readFile': async (p: string, opts : ReadFileOpts) => {
-          const pathUri = vscode.Uri.joinPath(Utils.dirname(document.uri), p);
+          const pathUri = Utils.resolvePath(Utils.dirname(document.uri), p);
+          console.log("ReadFile: ", pathUri, p, document.uri);
           const contents = await vscode.workspace.fs.readFile(pathUri);
           if(opts && (opts === 'utf8' || opts.encoding === 'utf8')) {
             return Buffer.from(contents).toString('utf8');
@@ -95,10 +81,18 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
       },
       'path': {
         'join': path.join,
-        'resolve': path.resolve
+        'resolve': (p : string) => {
+          const docUri = Utils.dirname(document.uri);
+          const answer = path.resolve(docUri.fsPath, p);
+          console.log("Path.resolve: ", docUri.fsPath, p, answer);
+          return answer;
+        }
       },
       'process': {
-        'cwd': () => process.cwd()
+        'cwd': () => {
+          console.log("cwd: ", process.cwd());
+          process.cwd();
+        }
       }
     }
 
@@ -134,7 +128,7 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
       changeDocumentSubscription.dispose();
     });
 
-    type RPCResponse = { result: any, } | { exception: any };
+    type RPCResponse = { resultType: 'value', result: any, } | { resultType: 'exception', exception: any };
     function sendRpcResponse(data: { callbackId: string }, result: RPCResponse) {
       webviewPanel.webview.postMessage({
         protocol: 'pyret-rpc',
@@ -158,14 +152,14 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
         console.log("RPC:", e.data);
         const module = (knownModules as any)[e.data.module];
         if (!(module as any)[e.data.method]) {
-          sendRpcResponse(e.data, { exception: "Unknown method" });
+          sendRpcResponse(e.data, { resultType: 'exception', exception: "Unknown method" });
         }
         else {
           try {
             const result = await (module as any)[e.data.method](...e.data.args);
-            sendRpcResponse(e.data, { result });
+            sendRpcResponse(e.data, { resultType: 'value', result });
           } catch (exn) {
-            sendRpcResponse(e.data, { exception: String(exn) });
+            sendRpcResponse(e.data, { resultType: 'exception', exception: String(exn) });
           }
         }
         return;

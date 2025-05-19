@@ -56,8 +56,7 @@
 	},
 	"scripts": {
 		"link-pyret": "ln -s node_modules/code.pyret.org/build build",
-		"postinstall": "npm run link-pyret",
-		"vscode:prepublish": "npm run compile",
+		"vscode:prepublish": "npm run compile; npm run link-pyret",
 		"compile": "webpack --mode production"
 	},
 	"devDependencies": {
@@ -70,6 +69,7 @@
 		"copy-webpack-plugin": "^13.0.0",
 		"eslint": "^8.26.0",
 		"generator-code": "^1.11.5",
+		"path-browserify": "^1.0.1",
 		"ts-loader": "^9.5.2",
 		"typescript": "^5.5.2",
 		"vscode-uri": "^3.0.8",
