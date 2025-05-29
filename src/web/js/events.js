@@ -66,17 +66,10 @@ function commSetup(config, messageCallback, gainControl, loseControl) {
       else {
         const [resolve, reject] = callbacks[event.data.data.callbackId];
         delete callbacks[event.data.data.callbackId];
-<<<<<<< HEAD
-        if(event.data.data.resultType === 'exception') {
-          reject(event.data.data.exception); 
-        }
-        else if(event.data.data.resultType === 'value') {
-=======
         if(event.data.data.resultType === "exception") {
           reject(event.data.data.exception); 
         }
         else if(event.data.data.resultType === "value") {
->>>>>>> 27cf47b3 (better detection of event type (don't rely on data field presence), and more fs-internal)
           resolve(event.data.data.result);
         }
         else {
