@@ -77,6 +77,11 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
             size: stat.size,
             native: stat
           };
+        },
+        'createDir': async (p: string) => {
+          const pathUri = Utils.resolvePath(Utils.dirname(document.uri), p);
+          await vscode.workspace.fs.createDirectory(pathUri);
+          return;
         }
       },
       'path': {
@@ -84,15 +89,16 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
         'resolve': (p : string) => {
           const docUri = Utils.dirname(document.uri);
           const answer = path.resolve(docUri.fsPath, p);
-          console.log("Path.resolve: ", docUri.fsPath, p, answer);
           return answer;
-        }
+        },
+        'basename': (p: string) => path.basename(p),
+        'dirname': (p: string) => path.dirname(p),
+        'extname': (p: string) => path.extname(p),
+        'relative': (from: string, to: string) => path.relative(knownModules.path.resolve(from), knownModules.path.resolve(to)),
+        'is-absolute': (p: string) => path.isAbsolute(p),
       },
       'process': {
-        'cwd': () => {
-          console.log("cwd: ", process.cwd());
-          process.cwd();
-        }
+        'cwd': () => process.cwd()
       }
     }
 
@@ -152,7 +158,7 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
         console.log("RPC:", e.data);
         const module = (knownModules as any)[e.data.module];
         if (!(module as any)[e.data.method]) {
-          sendRpcResponse(e.data, { resultType: 'exception', exception: "Unknown method" });
+          sendRpcResponse(e.data, { resultType: 'exception', exception: `Unknown method ${e.data.method}` });
         }
         else {
           try {
