@@ -22,6 +22,41 @@ type ReadFileOpts =
     'utf8'
   | { encoding?: 'utf8' };
 
+
+export function makeCommandHandler(context: vscode.ExtensionContext) {
+  const repls = new Map<string, PyretPane>();
+  return async (...args : any[]) => {
+    const activeEditor = vscode.window.activeTextEditor;
+    if (activeEditor) {
+      const uri = activeEditor.document.uri.toString();
+      console.log("Active editor URI: ", uri);
+      console.log("Repls: ", repls);
+      if (repls.has(uri)) {
+        console.log("A REPL for this document already exists.");
+        const repl = repls.get(uri)!;
+        repl.pane.reveal(vscode.ViewColumn.Two);
+        repl.reset();
+        return;
+      }
+      else {
+        const document = activeEditor.document;
+        const panel = vscode.window.createWebviewPanel(
+          `pyretRun-${document.uri.toString()}`,
+          `Run ${document.fileName}`,
+          vscode.ViewColumn.Two,
+          { enableScripts: true, retainContextWhenHidden: true }
+        );
+        const pane = makePyretPane(panel, context, document, 'repl');
+        repls.set(uri, pane);
+      }
+    } else {
+      console.log("No active text editor found.");
+    }
+    console.log("Command handler args: ", args);
+  };
+}
+
+
 export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
 
   public static register(context: vscode.ExtensionContext): vscode.Disposable {
@@ -50,6 +85,57 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken
   ): Promise<void> {
+    makePyretPane(webviewPanel, this.context, document, 'cpo');
+  }
+}
+
+/**
+ * Get the static html used for the editor webviews.
+ */
+export function getHtmlForWebview(context: vscode.ExtensionContext, webview: vscode.Webview, showDefinitions = true): string {
+  const config = vscode.workspace.getConfiguration(
+    'pyret-parley'
+  );
+  console.log("Config: ", config);
+  let urlFileMode = config.get('urlFileMode');
+  const baseURI = webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'dist', 'web', 'build', 'web'));
+  console.log("baseURI: ", baseURI);
+  let view = "";
+  if (showDefinitions === false) {
+    view = "hideDefinitions=true&headerStyle=hide";
+  }
+  else {
+    view = "hideInteractions=true";
+  }
+  const templated = 
+    render((code as string), {
+      BASE_URL: baseURI.toString(),
+      PYRET: webview.asWebviewUri(vscode.Uri.joinPath(baseURI, 'js', 'cpo-main.jarr.js')).toString(),
+      HASH_OPTIONS: `#footerStyle=hide&${view}`,
+      URL_FILE_MODE: urlFileMode,
+      IMAGE_PROXY_BYPASS: "true"
+    });
+  console.log("Templated: ", templated);
+  return templated;
+}
+
+
+type PyretPaneType = 'repl' | 'cpo';
+
+type PyretPane = {
+  pane: vscode.WebviewPanel;
+  context: vscode.ExtensionContext;
+  document: vscode.TextDocument;
+  type: PyretPaneType;
+  reset: () => void;
+}
+
+export function makePyretPane(
+  pane : vscode.WebviewPanel,
+  context: vscode.ExtensionContext,
+  document: vscode.TextDocument,
+  type: PyretPaneType
+): PyretPane {
     const knownModules = {
       'fs': {
         'writeFile': async (p: string, buffer : Buffer) => {
@@ -103,13 +189,14 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
     }
 
     // Setup initial content for the webview
-    webviewPanel.webview.options = {
+    pane.webview.options = {
       enableScripts: true,
     };
-    webviewPanel.webview.html = this.getHtmlForWebview(webviewPanel.webview);
+    const showDefinitions = type === 'cpo';
+    pane.webview.html = getHtmlForWebview(context, pane.webview, showDefinitions);
 
     function updateWebview() {
-      webviewPanel.webview.postMessage({
+      pane.webview.postMessage({
         type: 'setContents',
         text: document.getText(),
       });
@@ -130,13 +217,13 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
     });
 
     // Make sure we get rid of the listener when our editor is closed.
-    webviewPanel.onDidDispose(() => {
+    pane.onDidDispose(() => {
       changeDocumentSubscription.dispose();
     });
 
     type RPCResponse = { resultType: 'value', result: any, } | { resultType: 'exception', exception: any };
     function sendRpcResponse(data: { callbackId: string }, result: RPCResponse) {
-      webviewPanel.webview.postMessage({
+      pane.webview.postMessage({
         protocol: 'pyret-rpc',
         data: {
           type: 'rpc-response',
@@ -147,7 +234,7 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
     }
 
     // Receive message from the webview.
-    webviewPanel.webview.onDidReceiveMessage(async e => {
+    pane.webview.onDidReceiveMessage(async e => {
       console.log("Message: ", e);
       if (e.protocol === 'pyret-rpc') {
         /**
@@ -171,8 +258,12 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
         return;
       }
       if (e.protocol !== 'pyret') { console.warn("Non-pyret message: ", e); return; }
+      let definitionsAtLastRun : boolean | string = false;
+      if('repl' === type) {
+        definitionsAtLastRun = document.getText();
+      }
       const initialState = {
-        definitionsAtLastRun: false,
+        definitionsAtLastRun,
         interactionsSinceLastRun: [],
         editorContents: document.getText(),
         replContents: "",
@@ -180,14 +271,14 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
       switch (e.data.type) {
         case 'pyret-init': {
           console.log("Got init", e);
-          webviewPanel.webview.postMessage({
+          pane.webview.postMessage({
             protocol: 'pyret',
             data: {
               type: 'reset',
               state: JSON.stringify(initialState)
             },
           });
-          webviewPanel.webview.postMessage({
+          pane.webview.postMessage({
             type: 'gainControl'
           });
           break;
@@ -212,28 +303,24 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
     });
 
     updateWebview();
-  }
 
-  /**
-   * Get the static html used for the editor webviews.
-   */
-  private getHtmlForWebview(webview: vscode.Webview): string {
-    const config = vscode.workspace.getConfiguration(
-      'pyret-parley'
-    );
-    console.log("Config: ", config);
-    let urlFileMode = config.get('urlFileMode');
-    const baseURI = webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'web', 'build', 'web'));
-    console.log("baseURI: ", baseURI);
-    const templated = 
-      render((code as string), {
-        BASE_URL: baseURI.toString(),
-        PYRET: webview.asWebviewUri(vscode.Uri.joinPath(baseURI, 'js', 'cpo-main.jarr.js')).toString(),
-        HASH_OPTIONS: "#footerStyle=hide&hideInteractions=true",
-        URL_FILE_MODE: urlFileMode,
-        IMAGE_PROXY_BYPASS: "true"
-      });
-    console.log("Templated: ", templated);
-    return templated;
-  }
+    return {
+      pane,
+      context,
+      document,
+      type,
+      reset: () => { pane.webview.postMessage({
+          protocol: 'pyret',
+          data: {
+            type: 'reset',
+            state: JSON.stringify({
+              definitionsAtLastRun: document.getText(),
+              interactionsSinceLastRun: [],
+              editorContents: document.getText(),
+              replContents: "",
+            })
+          },
+        });
+      }
+    };
 }

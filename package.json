@@ -21,6 +21,18 @@
 	],
 	"browser": "./dist/web/extension.js",
 	"contributes": {
+		"commands": [
+			{
+				"command": "pyret-parley.run-file",
+				"title": "Run",
+				"category": "Pyret",
+				"when": "resourceExtname == .arr",
+				"icon": {
+					"light": "media/pyret-logo-128.png",
+					"dark": "media/pyret-logo-128.png"
+				}
+			}
+		],
 		"customEditors": [
 			{
 				"viewType": "pyret-parley.cpo",
