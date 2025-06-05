@@ -56,7 +56,7 @@
 	},
 	"scripts": {
 		"link-pyret": "ln -s node_modules/code.pyret.org/build build",
-		"vscode:prepublish": "npm run compile; npm run link-pyret",
+		"vscode:prepublish": "npm run compile",
 		"compile": "webpack --mode production"
 	},
 	"devDependencies": {
