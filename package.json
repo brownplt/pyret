@@ -21,16 +21,22 @@
 	],
 	"browser": "./dist/web/extension.js",
 	"contributes": {
+		"menus": {
+			"editor/title/run": [
+				{
+					"command": "pyret-parley.run-file",
+					"when": "resourceExtname == .arr",
+					"group": "navigation"
+				}
+			]
+		},
 		"commands": [
 			{
 				"command": "pyret-parley.run-file",
 				"title": "Run",
 				"category": "Pyret",
 				"when": "resourceExtname == .arr",
-				"icon": {
-					"light": "media/pyret-logo-128.png",
-					"dark": "media/pyret-logo-128.png"
-				}
+				"icon": "$(play)"
 			}
 		],
 		"customEditors": [
