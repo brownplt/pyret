@@ -53,6 +53,12 @@
 		"configuration": {
 			"title": "Pyret",
 			"properties": {
+				"pyret-parley.defaultContext": {
+					"type": "string",
+					"default": "starter2024",
+					"scope": "resource",
+					"description": "Controls the starter context used for new Pyret files. The string here appears after `use context` in the file."
+				},
 				"pyret-parley.urlFileMode": {
 					"type": "string",
 					"default": "all-remote",

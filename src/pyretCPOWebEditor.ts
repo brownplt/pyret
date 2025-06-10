@@ -93,10 +93,7 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
  * Get the static html used for the editor webviews.
  */
 export function getHtmlForWebview(context: vscode.ExtensionContext, webview: vscode.Webview, showDefinitions = true): string {
-  const config = vscode.workspace.getConfiguration(
-    'pyret-parley'
-  );
-  console.log("Config: ", config);
+  const config = vscode.workspace.getConfiguration('pyret-parley');
   let urlFileMode = config.get('urlFileMode');
   const baseURI = webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'dist', 'web', 'build', 'web'));
   console.log("baseURI: ", baseURI);
@@ -262,10 +259,16 @@ export function makePyretPane(
       if('repl' === type) {
         definitionsAtLastRun = document.getText();
       }
+      let docText = document.getText();
+      if(docText === "") {
+        const config = vscode.workspace.getConfiguration('pyret-parley');
+        let context = config.get('defaultContext');
+        docText = `use context ${context}`;
+      }
       const initialState = {
         definitionsAtLastRun,
         interactionsSinceLastRun: [],
-        editorContents: document.getText(),
+        editorContents: docText,
         replContents: "",
       };
       switch (e.data.type) {
