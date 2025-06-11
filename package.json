@@ -1,6 +1,6 @@
 {
 	"name": "pyret-parley",
-	"displayName": "(Experimental) Pyret Interactive Editor for VSCode",
+	"displayName": "Pyret Interactive Editor for VSCode",
 	"description": "An interactive Pyret mode",
 	"icon": "media/pyret-logo-128.png",
 	"version": "0.38.0",
