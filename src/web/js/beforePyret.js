@@ -193,6 +193,7 @@ $(function() {
     }
 
     const mac = CodeMirror.keyMap.default === CodeMirror.keyMap.macDefault;
+    console.log("Using keymap: ", CodeMirror.keyMap.default, "macDefault: ", CodeMirror.keyMap.macDefault, "mac: ", mac);
     const modifier = mac ? "Cmd" : "Ctrl";
 
     var cmOptions = {
@@ -207,6 +208,7 @@ $(function() {
         "Alt-Right": "goForwardSexp",
         "Ctrl-Left": "goBackwardToken",
         "Ctrl-Right": "goForwardToken",
+        [`${modifier}-F`]: "findPersistent",
         [`${modifier}-/`]: "toggleComment",
       }),
       indentUnit: 2,
