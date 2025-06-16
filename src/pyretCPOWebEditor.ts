@@ -46,8 +46,9 @@ export function makeCommandHandler(context: vscode.ExtensionContext) {
           vscode.ViewColumn.Two,
           { enableScripts: true, retainContextWhenHidden: true }
         );
-        const pane = makePyretPane(panel, context, document, 'repl');
-        repls.set(uri, pane);
+        const repl = makePyretPane(panel, context, document, 'repl');
+        repls.set(uri, repl);
+        repl.pane.onDidDispose(() => { repls.delete(uri); });
       }
     } else {
       console.log("No active text editor found.");
