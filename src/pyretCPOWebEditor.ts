@@ -89,14 +89,29 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
   }
 }
 
+function getTheme(vscodeTheme: vscode.ColorThemeKind): string {
+  switch (vscodeTheme) {
+    case vscode.ColorThemeKind.Light:
+      return 'default';
+    case vscode.ColorThemeKind.HighContrastLight:
+      return 'high-contrast-light';
+    case vscode.ColorThemeKind.Dark:
+      return 'monokai';
+    case vscode.ColorThemeKind.HighContrast:
+      return 'high-contrast-dark';
+    default:
+      return 'default';
+  }
+}
+
 /**
  * Get the static html used for the editor webviews.
  */
 export function getHtmlForWebview(context: vscode.ExtensionContext, webview: vscode.Webview, showDefinitions = true): string {
   const config = vscode.workspace.getConfiguration('pyret-parley');
+  const theme = getTheme(vscode.window.activeColorTheme.kind);
   let urlFileMode = config.get('urlFileMode');
   const baseURI = webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, 'dist', 'web', 'build', 'web'));
-  console.log("baseURI: ", baseURI);
   let view = "";
   if (showDefinitions === false) {
     view = "hideDefinitions=true&headerStyle=hide";
@@ -108,7 +123,7 @@ export function getHtmlForWebview(context: vscode.ExtensionContext, webview: vsc
     render((code as string), {
       BASE_URL: baseURI.toString(),
       PYRET: webview.asWebviewUri(vscode.Uri.joinPath(baseURI, 'js', 'cpo-main.jarr.js')).toString(),
-      HASH_OPTIONS: `#footerStyle=hide&${view}`,
+      HASH_OPTIONS: `#footerStyle=hide&${view}&theme=${theme}`,
       URL_FILE_MODE: urlFileMode,
       IMAGE_PROXY_BYPASS: "true"
     });
