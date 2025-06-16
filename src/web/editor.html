@@ -29,9 +29,6 @@
 </head>
 <body class="default">
   <script>
-    var themeOnLoad = localSettings.getItem('theme') || 'default';
-    document.body.classList.remove("default");
-    document.body.classList.add(themeOnLoad);
     var optionalTemplatedHash = "{{ &HASH_OPTIONS }}";
     var params = {};
     let hash;
@@ -70,6 +67,13 @@
     default:
       // nothing to do
     }
+
+    var themeOnLoad = params['theme'] || localSettings.getItem('theme') || 'default';
+    document.body.classList.remove("default");
+    document.body.classList.add(themeOnLoad);
+
+    console.log("Theme info", String(document.body.classList), themeOnLoad, params, localSettings.getItem('theme'));
+
     window.addEventListener('load', function() {
       document.getElementById('theme-select').value = themeOnLoad;
     }, { once: true });

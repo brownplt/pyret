@@ -593,11 +593,7 @@
         curTheme = theme;
       }
 
-      if (localSettings.getItem('theme') !== null) {
-        applyTheme(localSettings.getItem('theme'));
-      } else {
-        localSettings.setItem('theme', curTheme);
-      }
+      applyTheme(curTheme);
 
       $("#theme").change(function(e) {
         var value = e.target.value;
