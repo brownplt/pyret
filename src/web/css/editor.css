@@ -1609,6 +1609,10 @@ code div {
   z-index: 15000;
 }
 
+#vg-tooltip-element {
+  z-index: 15100;
+}
+
 .ui-dialog-titlebar {
   background-color: var(--ui-dialog-title-bg);
 }

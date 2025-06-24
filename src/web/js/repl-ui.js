@@ -490,6 +490,10 @@
               args.draw(_ => savedOptions);
             });
           },
+          resizeStop: (_, ui) => {
+            if (timeoutTrigger) clearTimeout(timeoutTrigger);
+            timeoutTrigger = setTimeout(args.draw, 100, ui);
+          },
           resize: () => {
             if (timeoutTrigger) clearTimeout(timeoutTrigger);
             timeoutTrigger = setTimeout(args.draw, 100);

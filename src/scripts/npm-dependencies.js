@@ -30,12 +30,8 @@ define("js-sha256", [], function () { return jssha256; });
 jsmd5 = require("js-md5");
 define("js-md5", [], function () { return jsmd5; });
 
-define("canvas", [], function() {
-  return {
-    createCanvas: function() { return document.createElement("canvas"); },
-    Image: Image
-  };
-});
+canvas = require("canvas");
+define("canvas", [], function () { return canvas; });
 
 crossfetch = require("cross-fetch");
 define("cross-fetch", [], function() { return crossfetch; });
@@ -53,6 +49,11 @@ d3_tip = require("d3-tip");
 define("d3-tip", [], function() { return d3_tip(d3); });
 
 define("google-charts", [], function() { return window.google || { info: "Google charts library did not load" }; });
+
+// vegaMin = require('vega');
+define("vegaMin", [], function () {return vega;});
+
+// require('vega-tooltip');
 
 function rpcForwardCallback(module, name) {
   return async function(...args) {

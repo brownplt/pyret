@@ -146,6 +146,11 @@ build/web/js/google-apis/%.js: src/web/js/google-apis/%.js
 build/web/js/events.js: src/web/js/events.js
 	cp $< $@
 
+build/web/js/vega.min.js: $(call NODE_MODULE,vega)/vega.min.js
+	cp $< $@
+build/web/js/vega-tooltip.min.js: lib/js/vega-tooltip.min.js
+	cp $< $@
+
 build/web/js/snap: $(call NODE_MODULE,snap)
 	mkdir -p build/web/js/snap
 	cp -r $</src build/web/js/snap
@@ -269,7 +274,9 @@ MISC_JS = build/web/js/q.js \
 	   build/web/js/es6-shim.js \
 	   build/web/js/runmode.js \
 	   build/web/js/mousetrap.min.js \
-	   build/web/js/mousetrap-global-bind.min.js
+	   build/web/js/mousetrap-global-bind.min.js \
+	   build/web/js/vega.min.js \
+	   build/web/js/vega-tooltip.min.js
 
 EDITOR_MISC_JS = build/web/js/q.js \
 		  build/web/js/loader.js \
