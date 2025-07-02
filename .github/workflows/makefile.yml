@@ -1,0 +1,27 @@
+name: Makefile CI
+
+on:
+  push:
+    branches: [ "horizon" ]
+  pull_request:
+    branches: [ "horizon" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v3.9.1
+      with:
+        node-version: 24
+
+    - name: update and install
+      run: |
+        npm update
+        npm install
+
+    - name: Install dependencies
+      run: npm run build
+
