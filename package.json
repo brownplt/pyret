@@ -21,6 +21,17 @@
 	],
 	"browser": "./dist/web/extension.js",
 	"contributes": {
+    "languages": [{
+        "id": "pyret",
+        "aliases": ["Pyret", "pyret"],
+        "extensions": [".arr"],
+        "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "pyret",
+      "scopeName": "source.arr",
+      "path": "./syntaxes/pyret.tmLanguage.json"
+    }],
 		"menus": {
 			"editor/title/run": [
 				{

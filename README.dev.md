@@ -24,3 +24,5 @@ User settings for avoiding diff views using the fancy editor; put in
 ```
 
 (Courtesy of https://github.com/microsoft/vscode-discussions/discussions/799)
+
+Grammar and language-configuration contributed by Seth Poulsen.
