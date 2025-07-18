@@ -102,5 +102,5 @@ jobs:
           npx mocha --grep modules --invert
         else
           echo "Running all tests"
-          npx mocha
+          npx mocha -- -g pyret-init
         fi
