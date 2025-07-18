@@ -3,7 +3,7 @@
 	"displayName": "Pyret Interactive Editor for VSCode",
 	"description": "An interactive Pyret mode",
 	"icon": "media/pyret-logo-128.png",
-	"version": "0.41.2",
+	"version": "0.41.4",
 	"publisher": "PyretProgrammingLanguage",
 	"private": true,
 	"license": "Apache-2.0",
@@ -21,17 +21,26 @@
 	],
 	"browser": "./dist/web/extension.js",
 	"contributes": {
-    "languages": [{
-        "id": "pyret",
-        "aliases": ["Pyret", "pyret"],
-        "extensions": [".arr"],
-        "configuration": "./language-configuration.json"
-    }],
-    "grammars": [{
-      "language": "pyret",
-      "scopeName": "source.arr",
-      "path": "./syntaxes/pyret.tmLanguage.json"
-    }],
+		"languages": [
+			{
+				"id": "pyret",
+				"aliases": [
+					"Pyret",
+					"pyret"
+				],
+				"extensions": [
+					".arr"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "pyret",
+				"scopeName": "source.arr",
+				"path": "./syntaxes/pyret.tmLanguage.json"
+			}
+		],
 		"menus": {
 			"editor/title/run": [
 				{
