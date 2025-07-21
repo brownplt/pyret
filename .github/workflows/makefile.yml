@@ -89,17 +89,13 @@ jobs:
 
     - name: Run tests
       run: |
-        # Set up virtual display for headless browser testing
-        export DISPLAY=:99
-        Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-        
         # Wait a bit more for everything to be ready
         sleep 3
         
         # Run tests based on event type
         if [ "${{ github.event_name }}" = "pull_request" ]; then
           echo "Running PR tests (excluding modules)"
-          npx mocha --grep modules --invert
+          npm run mocha -- --grep modules --invert
         else
           echo "Running all tests"
           npm run mocha -- -g pyret-init
