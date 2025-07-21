@@ -99,5 +99,5 @@ jobs:
           npm run mocha -- --grep modules --invert
         else
           echo "Running all tests"
-          npm run mocha -- -g "bar-chart-test.arr"
+          npm run mocha
         fi
