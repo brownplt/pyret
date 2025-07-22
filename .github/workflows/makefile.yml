@@ -76,6 +76,7 @@ jobs:
         echo "SHARED_FETCH_SERVER=https://code.pyret.org" >> $GITHUB_ENV
         echo "URL_FILE_MODE=all-remote" >> $GITHUB_ENV
         echo "IMAGE_PROXY_BYPASS=true" >> $GITHUB_ENV
+        echo "POSTMESSAGE_ORIGIN=*" >> $GITHUB_ENV
 
     - name: Start application server
       run: |
