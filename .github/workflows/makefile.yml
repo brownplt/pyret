@@ -113,3 +113,7 @@ jobs:
           echo "Running all tests"
           npm run mocha
         fi
+
+    - name: Copy cpo-main and related JS to S3
+      run: |
+        aws s3 sync ./build/web/js s3://pyret-horizon/horizon-action-test --recursive --acl public-read 
