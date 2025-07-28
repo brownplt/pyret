@@ -102,3 +102,15 @@ jobs:
           echo "Running all tests"
           npm run mocha
         fi
+
+    - name: "Configure AWS Credentials"
+      uses: aws-actions/configure-aws-credentials@v4.2.1
+      with:
+        aws-region: us-east-1
+        role-to-assume: arn:aws:iam::279230647316:user/github-actions
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        
+    - name: Deploy
+      run: |
+        aws s3 ls s3://pyret-horizon/new-horizons
