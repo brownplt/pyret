@@ -27,10 +27,12 @@ jobs:
         aws-region: us-east-1
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      if: github.event_name != 'pull_request'
         
     - name: S3 test
       run: |
         aws s3 ls s3://pyret-horizon/new-horizons
+      if: github.event_name != 'pull_request'
 
     - name: Install Chrome and ChromeDriver
       run: |
