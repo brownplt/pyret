@@ -101,6 +101,7 @@
 		"@typescript-eslint/eslint-plugin": "^7.14.0",
 		"@typescript-eslint/parser": "^7.14.0",
 		"@vscode/test-web": "^0.0.65",
+		"@vscode/vsce": "^3.6.0",
 		"copy-webpack-plugin": "^13.0.0",
 		"eslint": "^8.26.0",
 		"generator-code": "^1.11.5",
