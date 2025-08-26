@@ -17,7 +17,9 @@
 	"repository": "https://github.com/jpolitz/pyret-parley-vscode",
 	"files": [
 		"dist/web/**/*",
-		"media/pyret-logo-128.png"
+		"media/pyret-logo-128.png",
+		"language-configuration.json",
+		"syntaxes/pyret.tmLanguage.json"
 	],
 	"browser": "./dist/web/extension.js",
 	"contributes": {
