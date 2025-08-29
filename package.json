@@ -3,7 +3,7 @@
 	"displayName": "Pyret Interactive Editor for VSCode",
 	"description": "An interactive Pyret mode",
 	"icon": "media/pyret-logo-128.png",
-	"version": "0.42.23",
+	"version": "0.42.24",
 	"publisher": "PyretProgrammingLanguage",
 	"private": true,
 	"license": "Apache-2.0",
