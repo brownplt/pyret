@@ -5,7 +5,8 @@ on:
     branches: [ "horizon" ]
   pull_request:
     branches: [ "horizon" ]
-
+  workflow_dispatch:
+  
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
