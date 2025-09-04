@@ -279,7 +279,7 @@ export function makePyretPane(
       if(docText === "") {
         const config = vscode.workspace.getConfiguration('pyret-parley');
         let context = config.get('defaultContext');
-        docText = `use context ${context}`;
+        docText = `use context ${context}\n\n`;
       }
       const initialState = {
         definitionsAtLastRun,
