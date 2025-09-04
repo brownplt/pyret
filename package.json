@@ -43,6 +43,11 @@
 				"path": "./syntaxes/pyret.tmLanguage.json"
 			}
 		],
+		"configurationDefaults": {
+			"workbench.editorAssociations": {
+				"{git,gitlens}:/**/*.{arr}": "default"
+			}
+		},
 		"menus": {
 			"editor/title/run": [
 				{
