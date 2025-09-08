@@ -86,6 +86,7 @@ export class PyretCPOWebProvider implements vscode.CustomTextEditorProvider {
     webviewPanel: vscode.WebviewPanel,
     _token: vscode.CancellationToken
   ): Promise<void> {
+    console.log("Pyret: resolving custom text editor at: ", document.uri);
     makePyretPane(webviewPanel, this.context, document, 'cpo');
   }
 }
