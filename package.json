@@ -45,7 +45,7 @@
 		],
 		"configurationDefaults": {
 			"workbench.editorAssociations": {
-				"{git,gitlens}:/**/*.{arr}": "default"
+				"{git,gitlens,github}:/**/*.{arr}": "default"
 			}
 		},
 		"menus": {
