@@ -1460,6 +1460,7 @@ $(function() {
 
   let initialState = params["get"]["initialState"];
 
+  window.PYRET_IS_EMBEDDED = false;
   if (typeof acquireVsCodeApi === "function") {
     window.MESSAGES = makeEvents({
       CPO: CPO,
@@ -1467,8 +1468,10 @@ $(function() {
       receivePort: window,
       initialState
     });
+    window.PYRET_IS_EMBEDDED = true;
   }
   else if((window.parent && (window.parent !== window))) {
     window.MESSAGES = makeEvents({ CPO: CPO, sendPort: window.parent, receivePort: window, initialState });
+    window.PYRET_IS_EMBEDDED = true;
   }
 });
