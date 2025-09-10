@@ -152,6 +152,7 @@ $(function() {
       animationDiv = null;
     }
   }
+  let activeEditor = null;
   CPO.makeEditor = function(container, options) {
     var initial = "";
     if (options.hasOwnProperty("initial")) {
@@ -230,6 +231,9 @@ $(function() {
     cmOptions = merge(cmOptions, options.cmOptions || {});
 
     var CM = CodeMirror.fromTextArea(textarea[0], cmOptions);
+    CM.on("focus", () => {
+      activeEditor = CM;
+    });
 
     function firstLineIsNamespace() {
       const firstline = CM.getLine(0);
@@ -1415,6 +1419,10 @@ $(function() {
     window.stickError("Pyret failed to load; check your connection or try refreshing the page.  If this happens repeatedly, please report it as a bug.");
     logFailureAndManualFetch(process.env.PYRET_BACKUP, e);
 
+  });
+
+  window.addEventListener("focus", (e) => {
+    if(activeEditor) { activeEditor.focus(); }
   });
 
   function makeEvent() {
