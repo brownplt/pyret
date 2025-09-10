@@ -1,6 +1,6 @@
 {
   "name": "pyret-embed",
-  "version": "0.0.29",
+  "version": "0.0.30",
   "description": "A library for embedding Pyret into webpages",
   "main": "dist/pyret.js",
   "files": [
