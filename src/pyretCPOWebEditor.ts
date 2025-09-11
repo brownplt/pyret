@@ -307,30 +307,15 @@ export function makePyretPane(
           console.log("Got change", e);
           const edit = new vscode.WorkspaceEdit();
 
-          // a temporary type for the definition of a CodeMirror change event
-          type CMChange = {
-            from: { line: number, ch: number },
-            to: { line: number, ch: number },
-            text: string[],
-            removed: string[],
-            origin?: string
-          };
-
-          const vscodeRange = new vscode.Range(
-            e.data.change.from.line,
-            e.data.change.from.ch,
-            e.data.change.to.line,
-            e.data.change.to.ch);
-          const vscodeText = e.data.change.text.join('\n');
-
           // Just replace the entire document every time for this example extension.
           // A more complete extension should compute minimal edits instead.
           // NOTE(joe): we have these on the change events from CodeMirror
           edit.replace(
             document.uri,
-            vscodeRange,
-            vscodeText)
+            new vscode.Range(0, 0, document.lineCount, 0),
+            e.state.editorContents)
           vscode.workspace.applyEdit(edit);
+          document.save();
           break;
         }
         default: console.log("Got a message: ", e);
