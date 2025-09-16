@@ -227,8 +227,51 @@ export function makePyretPane(
     // Remember that a single text document can also be shared between multiple custom
     // editors (this happens for example when you split a custom editor)
 
+    const editQueue : [vscode.WorkspaceEdit, string][] = [];
+    let isProcessingEdits = false;
+    function queueEdit(edit: vscode.WorkspaceEdit, source: string) {
+      editQueue.push([edit, source]);
+      processEditQueue();
+    }
+    async function processEditQueue() {
+      function enqueueFullEdit(source : string) {
+        const fullEdit = new vscode.WorkspaceEdit();
+        fullEdit.replace(
+          document.uri,
+          new vscode.Range(0, 0, document.lineCount, 0),
+          source);
+        editQueue.push([fullEdit, source]);
+      }
+      if (editQueue.length === 0) { return; }
+      else if (isProcessingEdits) { return; }
+      else {
+        const [edit, source] = editQueue.shift()!;
+        try {
+          isProcessingEdits = true;
+          console.log("Processing edit from ", source);
+          const ok = await vscode.workspace.applyEdit(edit);
+          // If something went wrong with the edit, try again but just force the
+          // whole document contents to match
+          if(!ok) {
+            console.error("applyEdit returned false, updating full contents", edit, source);
+            enqueueFullEdit(source);
+          }
+        }
+        catch (e) {
+          console.error("Error applying edit: ", e);
+          enqueueFullEdit(source);
+        }
+        finally {
+          isProcessingEdits = false;
+          processEditQueue();
+        }
+      }
+
+    }
     const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
-      if (e.document.uri.toString() === document.uri.toString()) {
+      const hasChanges = e.contentChanges.length > 0;
+      const isOurDocument = e.document.uri.toString() === document.uri.toString();
+      if (hasChanges && isOurDocument && !isProcessingEdits) {
         updateWebview();
       }
     });
@@ -310,15 +353,17 @@ export function makePyretPane(
           console.log("Got change", e);
           const edit = new vscode.WorkspaceEdit();
 
-          // Just replace the entire document every time for this example extension.
-          // A more complete extension should compute minimal edits instead.
-          // NOTE(joe): we have these on the change events from CodeMirror
+          // Configure the edit from the CodeMirror change event in e.data.change
+          const from = e.data.change.from;
+          const to = e.data.change.to;
+          const text = e.data.change.text;
+          const range = new vscode.Range(from.line, from.ch, to.line, to.ch);
+          const newText = text.join('\n');
           edit.replace(
             document.uri,
-            new vscode.Range(0, 0, document.lineCount, 0),
-            e.state.editorContents)
-          vscode.workspace.applyEdit(edit);
-          document.save();
+            range,
+            newText);
+          queueEdit(edit, e.state.editorContents);
           break;
         }
         default: console.log("Got a message: ", e);
