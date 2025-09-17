@@ -362,6 +362,10 @@ export function makePyretPane(
         const config = vscode.workspace.getConfiguration('pyret-parley');
         let context = config.get('defaultContext');
         docText = `use context ${context}\n\n`;
+        const edit = new vscode.WorkspaceEdit();
+        edit.insert(document.uri, new vscode.Position(0, 0), docText);
+        await vscode.workspace.applyEdit(edit);
+        document.save();
       }
       const initialState = {
         definitionsAtLastRun,
