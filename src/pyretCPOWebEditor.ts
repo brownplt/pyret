@@ -209,14 +209,31 @@ export function makePyretPane(
     const showDefinitions = type === 'cpo';
     pane.webview.html = getHtmlForWebview(context, pane.webview, showDefinitions);
 
-    function updateWebview() {
-      pane.webview.postMessage({
-        protocol: "pyret",
-        data: {
-          type: 'setContents',
-          text: document.getText(),
-        }
-      });
+    function updateWebview(contentChanges?: readonly vscode.TextDocumentContentChangeEvent[]) {
+      if(!contentChanges) {
+        pane.webview.postMessage({
+          protocol: "pyret",
+          data: {
+            type: 'setContents',
+            text: document.getText(),
+          }
+        });
+        return;
+      }
+      for(const change of contentChanges) {
+        pane.webview.postMessage({
+          protocol: "pyret",
+          data: {
+            type: 'change',
+            change: {
+              from: { line: change.range.start.line, ch: change.range.start.character },
+              to: { line: change.range.end.line, ch: change.range.end.character },
+              text: change.text.split('\n'),
+              origin: null
+            }
+          }
+        });
+      }
     }
 
     // Hook up event handlers so that we can synchronize the webview with the text document.
@@ -272,7 +289,7 @@ export function makePyretPane(
       const hasChanges = e.contentChanges.length > 0;
       const isOurDocument = e.document.uri.toString() === document.uri.toString();
       if (hasChanges && isOurDocument && !isProcessingEdits) {
-        updateWebview();
+        updateWebview(e.contentChanges);
       }
     });
 
