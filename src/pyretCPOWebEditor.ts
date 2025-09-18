@@ -211,11 +211,8 @@ export function makePyretPane(
 
     function updateWebview() {
       pane.webview.postMessage({
-        protocol: "pyret",
-        data: {
-          type: 'setContents',
-          text: document.getText(),
-        }
+        type: 'setContents',
+        text: document.getText(),
       });
     }
 
