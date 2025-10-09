@@ -12,7 +12,6 @@ describe("Numbers at the REPL", function() {
     this.browser.get(this.base + "/editor");
     this.browser.wait(function() { return tester.pyretLoaded(self.browser); });
     tester.evalPyret(this.browser, "1/7");
-    console.log("Evaluated 1/7");
     this.browser.wait(function() {
         return self.browser.findElements(webdriver.By.className("rationalRepeat")).then((els) => els.length > 0);
     });
