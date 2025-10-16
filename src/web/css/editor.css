@@ -1612,6 +1612,18 @@ code div {
 #vg-tooltip-element {
   z-index: 15100;
 }
+#vg-tooltip-element.visible {
+  font-size: inherit;
+}
+
+#vg-tooltip-element.visible table tr td.key {
+  color: var(--repl-output);
+  padding-top: 0.5em;
+  padding-right: 0.5em;
+  padding-bottom: 0.5em;
+  /* Note: not setting background color, so that we get clearer rows */
+  font-weight: var(--th-font-weight);
+}
 
 .ui-dialog-titlebar {
   background-color: var(--ui-dialog-title-bg);
