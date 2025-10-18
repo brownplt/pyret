@@ -209,24 +209,38 @@ export function makePyretPane(
     const showDefinitions = type === 'cpo';
     pane.webview.html = getHtmlForWebview(context, pane.webview, showDefinitions);
 
-    function updateWebview() {
-      pane.webview.postMessage({
-        type: 'setContents',
-        text: document.getText(),
-      });
-    }
 
-    // Hook up event handlers so that we can synchronize the webview with the text document.
-    //
-    // The text document acts as our model, so we have to sync change in the document to our
-    // editor and sync changes in the editor back to the document.
-    // 
-    // Remember that a single text document can also be shared between multiple custom
-    // editors (this happens for example when you split a custom editor)
+    /*
+    State/event management for the bidirectional mapping between the
+    TextDocument (VScode's abstraction) and the webview's CodeMirror instance.
+
+    We maintain a queue of edits to apply to the TextDocument, and process them
+    one after another – they are asynchronous so we need to avoid basic races of
+    our own creation.
+
+    We take a bit of a strong position on edits coming from the webview getting
+    priority:
+
+    - isProcessingEdits is set to true while we are applying edits. If any edits
+      come in from VScode, we ignore them, counting ours as more important.
+    - If we get out of sync, or our edits fail to apply, we override everything
+      with a full replacement of the text that came from the webview with that
+      edit.
+
+    This means that if the user is editing in VScode at the same time as the
+    webview is trying to make edits, the webview will win. Same for doing
+    undo/redo events triggered through VScode's menu options that happen at the
+    same time the user is typing in the CodeMirror view – the webview's version
+    of things wins.
+    */
+    const editQueue : [vscode.WorkspaceEdit, string][] = [];
+    let isProcessingEdits = false;
 
     const changeDocumentSubscription = vscode.workspace.onDidChangeTextDocument(e => {
-      if (e.document.uri.toString() === document.uri.toString()) {
-        updateWebview();
+      const hasChanges = e.contentChanges.length > 0;
+      const isOurDocument = e.document.uri.toString() === document.uri.toString();
+      if (hasChanges && isOurDocument && !isProcessingEdits) {
+        updateWebview(e.contentChanges);
       }
     });
 
@@ -234,6 +248,73 @@ export function makePyretPane(
     pane.onDidDispose(() => {
       changeDocumentSubscription.dispose();
     });
+
+    function updateWebview(contentChanges?: readonly vscode.TextDocumentContentChangeEvent[]) {
+      if(!contentChanges) {
+        pane.webview.postMessage({
+          protocol: "pyret",
+          data: {
+            type: 'setContents',
+            text: document.getText(),
+          }
+        });
+        return;
+      }
+      for(const change of contentChanges) {
+        pane.webview.postMessage({
+          protocol: "pyret",
+          data: {
+            type: 'change',
+            change: {
+              from: { line: change.range.start.line, ch: change.range.start.character },
+              to: { line: change.range.end.line, ch: change.range.end.character },
+              text: change.text.split('\n'),
+              origin: null
+            }
+          }
+        });
+      }
+    }
+
+    function enqueueEdit(edit: vscode.WorkspaceEdit, source: string) {
+      editQueue.push([edit, source]);
+      processEditQueue();
+    }
+    async function processEditQueue() {
+      function enqueueFullEdit(source : string) {
+        const fullEdit = new vscode.WorkspaceEdit();
+        fullEdit.replace(
+          document.uri,
+          new vscode.Range(0, 0, document.lineCount, 0),
+          source);
+        editQueue.push([fullEdit, source]);
+      }
+      if (editQueue.length === 0) { return; }
+      else if (isProcessingEdits) { return; }
+      else {
+        const [edit, source] = editQueue.shift()!;
+        try {
+          isProcessingEdits = true;
+          console.log("Processing edit from ", source);
+          const ok = await vscode.workspace.applyEdit(edit);
+          // If something went wrong with the edit, try again but just force the
+          // whole document contents to match
+          if(!ok) {
+            console.error("applyEdit returned false, updating full contents", edit, source);
+            enqueueFullEdit(source);
+          }
+        }
+        catch (e) {
+          console.error("Error applying edit: ", e);
+          enqueueFullEdit(source);
+        }
+        finally {
+          isProcessingEdits = false;
+          processEditQueue();
+        }
+      }
+
+    }
 
     type RPCResponse = { resultType: 'value', result: any, } | { resultType: 'exception', exception: any };
     function sendRpcResponse(data: { callbackId: string }, result: RPCResponse) {
@@ -281,6 +362,10 @@ export function makePyretPane(
         const config = vscode.workspace.getConfiguration('pyret-parley');
         let context = config.get('defaultContext');
         docText = `use context ${context}\n\n`;
+        const edit = new vscode.WorkspaceEdit();
+        edit.insert(document.uri, new vscode.Position(0, 0), docText);
+        await vscode.workspace.applyEdit(edit);
+        document.save();
       }
       const initialState = {
         definitionsAtLastRun,
@@ -306,16 +391,11 @@ export function makePyretPane(
         case 'change': {
           console.log("Got change", e);
           const edit = new vscode.WorkspaceEdit();
-
-          // Just replace the entire document every time for this example extension.
-          // A more complete extension should compute minimal edits instead.
-          // NOTE(joe): we have these on the change events from CodeMirror
-          edit.replace(
-            document.uri,
-            new vscode.Range(0, 0, document.lineCount, 0),
-            e.state.editorContents)
-          vscode.workspace.applyEdit(edit);
-          document.save();
+          const { from, to, text } = e.data.change;
+          const range = new vscode.Range(from.line, from.ch, to.line, to.ch);
+          const newText = text.join('\n');
+          edit.replace(document.uri, range, newText);
+          enqueueEdit(edit, e.state.editorContents);
           break;
         }
         default: console.log("Got a message: ", e);
