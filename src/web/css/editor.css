@@ -2297,6 +2297,9 @@ table.pyret-table.pyret-matrix {
 table.pyret-table thead {
   box-shadow: 0px 2px 2px var(--shadow-color);
 }
+/* Force tables to be the full height of the viewport, leaving 250px for other chrome */
+table.pyret-table tbody { max-height: calc(100vh - 250px); display: block; overflow: scroll; }
+table.pyret-table tr { table-layout: fixed; display: table; width: 100%; }
 table.pyret-row th {
   box-shadow: 2px 0px 2px var(--shadow-color), -2px 0px 2px var(--shadow-color);
   border: none;
