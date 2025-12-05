@@ -105,9 +105,11 @@
       else if(window.IMAGE_PROXY_BYPASS) {
         return s;
       }
+      /*
       else if(a.hostname === "drive.google.com" && a.pathname === "/uc") {
         return s;
       }
+      */
       else {
         return window.APP_BASE_URL + "/downloadImg?" + s;
       }
