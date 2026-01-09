@@ -359,12 +359,6 @@ $(function() {
   });
 
   storageAPI = storageAPI.then(function(api) { return api.api; });
-  $("#fullConnectButton").click(function() {
-    reauth(
-      false,  // Don't do an immediate load (this will require login)
-      true    // Use the full set of scopes for this login
-    );
-  });
   $("#connectButton").click(function() {
     $("#connectButton").text("Connecting...");
     $("#connectButton").attr("disabled", "disabled");
@@ -1343,7 +1337,6 @@ $(function() {
     }
     else {
       const hideWhenControlled = [
-        "#fullConnectButton",
         "#logging",
         "#logout"
       ];

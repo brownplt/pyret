@@ -27,6 +27,7 @@ PYRET=$(call NODE_MODULE,pyret-lang)/../..
 CPOMAIN=build/web/js/cpo-main.jarr
 CPOGZ=build/web/js/cpo-main.jarr.gz.js
 PHASEA=pyret/build/phaseA/pyret.jarr
+COMMITID=$(shell git rev-parse --short HEAD)
 
 .PHONY : test_node_module
 test_node_module:
@@ -371,7 +372,11 @@ link-pyret:
 	ln -s $(PYRET) pyret
 	(cd $(PYRET) && $(MAKE) phaseA-deps)
 
-deploy-cpo-main: link-pyret $(CPOMAIN) $(CPOGZ)
+deploy-cpo-main: link-pyret $(CPOMAIN) cpo-main-release 
+
+cpo-main-release: $(CPOGZ)
+	mkdir -p build/release/$(COMMITID);
+	cp $(CPOGZ) build/release/$(COMMITID)/
 
 TROVE_JS := src/web/js/trove/*.js
 TROVE_ARR := src/web/arr/trove/*.arr
