@@ -1,0 +1,135 @@
+{
+	"name": "pyret-parley",
+	"displayName": "Pyret Interactive Editor for VSCode",
+	"description": "An interactive Pyret mode",
+	"icon": "media/pyret-logo-128.png",
+	"version": "0.42.40",
+	"publisher": "PyretProgrammingLanguage",
+	"private": true,
+	"license": "Apache-2.0",
+	"engines": {
+		"vscode": "^1.74.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [],
+	"repository": "https://github.com/jpolitz/pyret-parley-vscode",
+	"files": [
+		"dist/web/**/*",
+		"media/pyret-logo-128.png",
+		"language-configuration.json",
+		"syntaxes/pyret.tmLanguage.json"
+	],
+	"browser": "./dist/web/extension.js",
+	"contributes": {
+		"languages": [
+			{
+				"id": "pyret",
+				"aliases": [
+					"Pyret",
+					"pyret"
+				],
+				"extensions": [
+					".arr"
+				],
+				"configuration": "./language-configuration.json"
+			}
+		],
+		"grammars": [
+			{
+				"language": "pyret",
+				"scopeName": "source.arr",
+				"path": "./syntaxes/pyret.tmLanguage.json"
+			}
+		],
+		"configurationDefaults": {
+			"workbench.editorAssociations": {
+				"{git,gitlens,github}:/**/*.{arr}": "default"
+			}
+		},
+		"menus": {
+			"editor/title/run": [
+				{
+					"command": "pyret-parley.run-file",
+					"when": "resourceExtname == .arr",
+					"group": "navigation"
+				}
+			]
+		},
+		"commands": [
+			{
+				"command": "pyret-parley.run-file",
+				"title": "Run",
+				"category": "Pyret",
+				"when": "resourceExtname == .arr",
+				"icon": "$(play)"
+			}
+		],
+		"customEditors": [
+			{
+				"viewType": "pyret-parley.cpo",
+				"displayName": "Pyret code.pyret.org",
+				"selector": [
+					{
+						"filenamePattern": "*.arr"
+					}
+				]
+			}
+		],
+		"configuration": {
+			"title": "Pyret",
+			"properties": {
+				"pyret-parley.defaultContext": {
+					"type": "string",
+					"default": "starter2024",
+					"scope": "resource",
+					"description": "Controls the starter context used for new Pyret files. The string here appears after `use context` in the file."
+				},
+				"pyret-parley.urlFileMode": {
+					"type": "string",
+					"default": "all-remote",
+					"scope": "resource",
+					"enum": [
+						"all-remote",
+						"all-local",
+						"local-if-present"
+					],
+					"markdownEnumDescriptions": [
+						"Always load `url-file()` imports from the URL",
+						"Always load `url-file()` imports from the local filesystem",
+						"Load `url-file()` imports from the local filesystem if they exist, otherwise from the URL"
+					],
+					"description": "Controls how `url-file()` imports are resolved"
+				}
+			}
+		}
+	},
+	"scripts": {
+		"link-pyret": "ln -s node_modules/code.pyret.org/build build",
+		"vscode:prepublish": "npm run compile",
+		"compile": "webpack --mode production"
+	},
+	"devDependencies": {
+		"@types/mustache": "^4.2.5",
+		"@types/node": "^18",
+		"@types/vscode": "^1.73.0",
+		"@typescript-eslint/eslint-plugin": "^7.14.0",
+		"@typescript-eslint/parser": "^7.14.0",
+		"@vscode/test-web": "^0.0.65",
+		"@vscode/vsce": "^3.6.0",
+		"copy-webpack-plugin": "^13.0.0",
+		"eslint": "^8.26.0",
+		"generator-code": "^1.11.5",
+		"path-browserify": "^1.0.1",
+		"ts-loader": "^9.5.2",
+		"typescript": "^5.5.2",
+		"vscode-uri": "^3.0.8",
+		"webpack": "^5.97.1",
+		"webpack-cli": "^6.0.1",
+		"yo": "^5.1.0"
+	},
+	"dependencies": {
+		"mustache": "^4.2.0"
+	}
+}
