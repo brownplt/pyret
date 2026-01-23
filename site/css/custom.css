@@ -1,0 +1,267 @@
+/* custom.css */
+
+body > div:first-of-type {
+  padding-top: 66px;
+}
+
+a:active, a:focus {
+  outline: 0;
+}
+
+code {
+  color: black;
+  background-color: #eee;
+  font-size: 11pt;
+}
+
+/* When highlighted code blocks are too wide, they wrap. Resulting in the */
+/* line numbers column's rows not lining up with the code rows. Prevent */
+/* wrapping. */
+pre {
+  white-space: pre;
+  font-family: 'Hack', monospace;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.navbar {
+  background-color: #eee;
+  border: 0px;
+  margin-bottom: 0px;
+  width: 100%;
+  position: fixed;
+}
+
+.jumbotron {
+  /* 48px from Bootstrap + 66px from Navbar (30px padding + 36px image)*/
+  padding-top: 114px !important;
+}
+
+img.navbar-logo {
+  height: 2em;
+}
+
+img.title-logo {
+  width: 80%;
+  padding-bottom: 1em;
+}
+
+.navbar-nav {
+  float: right !important;
+  margin: 7.5px -15px;
+}
+
+.navbar-nav>li>a {
+  color: #111 !important;
+}
+
+/* Credit to Ian Lunn for Hovering CSS3 Code */
+
+.fancyhover-above,
+.fancyhover-below {
+  display: inline-block;
+  vertical-align: middle;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -moz-osx-font-smoothing: grayscale;
+  position: relative;
+  overflow: hidden;
+}
+.fancyhover-above:before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  right: 0;
+  top: 0;
+  background: #0c46ff;
+  height: 4px;
+  -webkit-transform: translateY(-4px);
+  transform: translateY(-4px);
+  -webkit-transition-property: transform;
+  transition-property: transform;
+  -webkit-transition-duration: 0.3s;
+  transition-duration: 0.3s;
+  -webkit-transition-timing-function: ease-out;
+  transition-timing-function: ease-out;
+}
+
+.fancyhover-above:hover:before,
+.fancyhover-above:focus:before,
+.fancyhover-above:active:before,
+.fancyhover-below:hover:before,
+.fancyhover-below:focus:before,
+.fancyhover-below:active:before {
+  -webkit-transform: translateY(0);
+  transform: translateY(0);
+}
+
+.fancyhover-below {
+  display: inline-block;
+  vertical-align: middle;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -moz-osx-font-smoothing: grayscale;
+  position: relative;
+  overflow: hidden;
+}
+
+.fancyhover-above:before,
+.fancyhover-below:before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  left: 0;
+  right: 0;
+  background: #0c46ff;
+  height: 4px;
+  -webkit-transition-property: transform;
+  transition-property: transform;
+  -webkit-transition-duration: 0.3s;
+  transition-duration: 0.3s;
+  -webkit-transition-timing-function: ease-out;
+  transition-timing-function: ease-out;
+}
+
+.fancyhover-above:before {
+  top: 0;
+  -webkit-transform: translateY(-4px);
+  transform: translateY(-4px);
+}
+
+.fancyhover-below:before {
+  bottom: 0;
+  -webkit-transform: translateY(4px);
+  transform: translateY(4px);
+}
+
+.btn-primary {
+  color: #444;
+  background-color: transparent;
+  border-color: transparent;
+  font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background-color: transparent;
+  border-color:transparent;
+  color: inherit;
+}
+
+.hvr-border-fade {
+  line-height: inherit;
+  display: inline-block;
+  vertical-align: middle;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-transition-duration: 0.3s;
+  transition-duration: 0.3s;
+  -webkit-transition-property: box-shadow, color;
+  transition-property: box-shadow, color;
+  box-shadow: inset 0 0 0 2px #888, 0 0 1px rgba(0, 0, 0, 0);
+  /* Hack to improve aliasing on mobile/tablet devices */
+}
+.hvr-border-fade:hover, .hvr-border-fade:focus, .hvr-border-fade:active {
+  box-shadow: inset 0 0 0 2px #ee1e10, 0 0 1px rgba(0, 0, 0, 0);
+  /* Hack to improve aliasing on mobile/tablet devices */
+  color: #ee1e10;
+}
+
+.popover-title {
+  word-break: normal;
+}
+
+.info {
+  background-color: #669;
+  color: white;
+  padding: 2px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+h1 {
+  font-size: 24px;
+}
+
+div.carousel {
+  height : 100%;
+  min-height : 100%;
+}
+
+a.carousel-control {
+  text-shadow: none;
+}
+
+a.carousel-control.right {
+  color : #111;
+  background-color : transparent;
+  background-image : none;
+}
+
+a.carousel-control.left {
+  color : #111;
+  background-color : transparent;
+  background-image : none;
+}
+
+#main-carousel {
+  min-width : 20em;
+}
+
+div.carousel-inner pre {
+  min-width : 28em;
+}
+
+div.carousel-inner pre {
+  margin-left : 3em;
+  margin-right : 3em;
+  height : 25em;
+}
+
+#content {
+
+}
+
+.jumbotron p {
+  font-family : 'Garamond';
+  font-size: 14pt;
+}
+
+#content p {
+  font-family : 'Garamond';
+  font-size : 14pt;
+}
+
+#content ul {
+  font-family : 'Garamond';
+  font-weight: 300;
+  font-size : 14pt;
+}
+
+#content ol {
+  font-family : 'Garamond';
+  font-size : 14pt;
+}
+
+.paragraph-content {
+  font-family : 'Garamond';
+  font-size : 14pt;
+}
+
+h3 {
+  font-size: 18px;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+}
