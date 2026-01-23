@@ -1,0 +1,14 @@
+{
+    "compilerOptions": {
+        "target": "es2024",
+        "module": "preserve",
+        "lib": ["dom", "es2024"],
+        "moduleResolution": "bundler",
+        "declaration": true,
+        "declarationDir": "./types",
+        "outDir": "./dist",
+        "esModuleInterop": true,
+        "skipLibCheck": true
+    },
+    "include": ["src/pyret.ts", "src/inmem-rpc.ts"]
+}

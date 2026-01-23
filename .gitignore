@@ -1,0 +1,4 @@
+dist/build/web/js/snap
+*.swp
+node_modules
+

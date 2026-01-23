@@ -1,0 +1,118 @@
+<!doctype HTML>
+
+<html>
+<head>
+
+<style>
+.example {
+  display: flex;
+  justify-content: space-between;
+}
+.right {
+  flex-basis: 50%;
+  height: 40em;
+}
+.right iframe {
+  height: 40em;
+}
+.left {
+  flex-basis: 30%;
+}
+</style>
+
+
+</head>
+<body>
+
+<div id="example1-container" class="example">
+  <div class="left">
+  <p>An example that populates the editor.</p>
+  <pre id="example1-code">
+  </pre>
+  </div>
+  <div id="example1" class="right">
+  </div>
+</div>
+
+<div id="example2-container" class="example">
+  <div class="left">
+  <p>An example that populates the editor, then sends an interaction on demand</p>
+  <button id="example2-button">Send <code>overlay(...)</code> to interactions</button>
+  <pre id="example2-code">
+  </pre>
+  </div>
+  <div id="example2" class="right">
+  </div>
+</div>
+
+<div id="example3-container" class="example">
+  <div class="left">
+  <p>An example that populates the editor, and allows resetting back to the initial state</p>
+  <button id="example3-button">Reset</button>
+  <pre id="example3-code">
+  </pre>
+  </div>
+  <div id="example3" class="right">
+  </div>
+</div>
+
+<div id="example4-container" class="example">
+  <div class="left">
+  <p>An example that populates the editor from a shared file (https://code.pyret.org/editor#share=1rj_zKiheibxod8IihAFeMpP91XjLROum)</p>
+  <pre id="example4-code">
+  </pre>
+  </div>
+  <div id="example4" class="right">
+  </div>
+</div>
+
+<div id="example5-container" class="example">
+  <div class="left">
+  <p>An example that checks a student answer. The student should define a variable <code>x</code> containing the string `"embed"`</p>
+  <button id="example5-button">Check student code</button>
+  <div id="example5-result">(Code not run yet)</div>
+  <pre id="example5-code">
+  </pre>
+  </div>
+  <div id="example5" class="right">
+  </div>
+</div>
+
+<div id="example6-container" class="example">
+  <div class="left">
+  <p>An example that checks a student answer after running definitions. The student should define a variable <code>x</code> containing the string `"embed"` in their definitions window.</p>
+  <button id="example6-button">Check student code</button>
+  <div id="example6-result">(Code not run yet)</div>
+  <pre id="example6-code">
+  </pre>
+  </div>
+  <div id="example6" class="right">
+  </div>
+</div>
+</body>
+
+<div id="example7-container" class="example">
+  <div class="left">
+  <p>An example that clears interactions. The main use case is to compose with running an interaction to check student work.</p>
+  <button id="example7-button">Clear interactions</button>
+  <pre id="example7-code">
+  </pre>
+  </div>
+  <div id="example7" class="right">
+  </div>
+</div>
+</body>
+
+
+<script type="module" src="../dist/pyret.js"></script>
+  
+<script type="module" src="example1.js"></script>
+<script type="module" src="example2.js"></script>
+<script type="module" src="example3.js"></script>
+<script type="module" src="example4.js"></script>
+<script type="module" src="example5.js"></script>
+<script type="module" src="example6.js"></script>
+<script type="module" src="example7.js"></script>
+</html>
+
+
