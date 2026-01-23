@@ -1,0 +1,5 @@
+.vscode-test-web
+*.swp
+out
+dist
+node_modules
