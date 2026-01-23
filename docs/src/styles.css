@@ -1,0 +1,197 @@
+.VSCode {
+  position: relative;
+  border: 1px dashed #54a4ec;
+  border-radius: 0.5em;
+}
+
+.VSCode .vscode-icon::after {
+  content: url(code-stable-small.png);
+  float: right;
+  margin-top: -1em;
+  margin-right: -1em;
+  position: relative;
+  width: 2em;
+  height: 2em;
+}
+
+.VSCodeCLI {
+  position: relative;
+  border: 1px dashed #275278;
+  border-radius: 0.5em;
+}
+
+.VSCodeCLI .vscode-cli-icon::after {
+  content: url(terminal-vscode.png);
+  float: right;
+  margin-top: -1em;
+  margin-right: -1em;
+  position: relative;
+  width: 2em;
+  height: 2em;
+}
+
+.CLI {
+  position: relative;
+  border: 1px dashed #2b2737;
+  border-radius: 0.5em;
+}
+
+.CLI .cli-icon::after {
+  content: url(GNOME_Terminal-small.png);
+  float: right;
+  margin-top: -1em;
+  margin-right: -1em;
+  position: relative;
+  width: 2em;
+  height: 2em;
+}
+
+.CPO {
+  position: relative;
+  border: 1px dashed #ee1d0f;
+  border-radius: 0.5em;
+}
+
+.CPO .cpo-icon::after {
+  content: url(pyret-logo-small.png);
+  float: right;
+  margin-top: -1em;
+  margin-right: -1em;
+  position: relative;
+  width: 2em;
+  height: 2em;
+}
+
+/* New styles just for Pyret */
+
+.boxed .SIntrapara {
+  margin: 0;
+}
+
+.indent-arg {
+  margin-left: 1.5em;
+}
+
+.boxed blockquote {
+  margin-bottom: 0;
+}
+
+.pyret-header {
+  margin-bottom: 1rem;
+}
+
+.pyret-highlight {
+  font-family: 'Source Code Pro', monospace;
+  font-size: 1rem;
+}
+
+.pyret-highlight.good-ex::before {
+   content: "✔";
+   font-size: 2rem;
+   color: #008800;
+   float: right;
+}
+
+.pyret-highlight.good-ex {
+   background-color: #eeffee;
+}
+
+.pyret-highlight.bad-ex {
+   background-color: #ffeeee;
+}
+
+.pyret-highlight.bad-ex::before {
+   content: "✘";
+   font-size: 2rem;
+   color: #880000;
+   float: right;
+}
+
+.pyret-highlight.ok-ex {
+   background-color: #ffffee;
+}
+
+.repl-example .pyret-highlight {
+    margin-left: 1.5em;
+  background-color: hsl(0,0%,95%);
+}
+
+.repl-examples .SIntrapara {
+    margin: 0;
+}
+
+.repl-example::before{
+  content: '\203a\203a\203a';
+  display: inline;
+  line-height: 1em;
+  float: left;
+}
+
+.paintBrush {
+   height: 2.1em;
+   margin-right: -0.5em;
+   position: relative;
+   z-index: 2;
+}
+.paintSpan {
+   display: inline-block;
+}
+.paintBlob {
+   width: 2.5em;
+   height: 1.5em;
+   position: relative;
+   z-index: 1;
+   vertical-align: baseline;
+   display: inline-block;
+   -webkit-mask-image: url(./paint.svg);
+   mask-image: url(./paint.svg);
+   -webkit-mask-size: contain;
+   mask-size: 100% 100%;
+   mask-type: luminance;
+}
+.checkersBlob {
+   margin-right: -2.5em;
+   width: 2.5em;
+   height: 1.5em;
+   position: absolute;
+   background-image: url(./checkers.svg);
+   background-size: 2.5em 1.5em;
+   display: inline-block;
+}
+
+
+pre.pyret-block {
+   padding-bottom: 1rem;
+   margin: 0;
+}
+
+
+
+.bnf-meta {
+  color: gray;
+  font-size: 115%;
+}
+
+.bnf-lit {
+  font-family: monospace;
+  font-weight: bold;
+}
+
+.bnf-lit.bnf-unknown {
+  background-color: unset;
+  border: unset;
+  font-style: italic;
+}                      
+
+.bnf-phantom::before {
+   content: attr(data-prod);
+   color: transparent;
+}
+
+.hide {
+    display: none;
+}
+
+.searchbox.large {
+    width: 24rem;
+}
