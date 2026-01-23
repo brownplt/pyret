@@ -1,0 +1,4 @@
+.pyret
+*.sw*
+node_modules
+pyret-lang
