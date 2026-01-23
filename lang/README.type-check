@@ -1,0 +1,14 @@
+===================
+Type Checker README
+===================
+
+To build:
+
+  $ make install && make
+
+The type checker is part of the compilation process, so to type check a file,
+you can run:
+
+  $ node build/phase1/main-wrapper.js -type-check --run path/to/file.arr
+
+Note that the --run flag is necessary for now, so as to use the new module system.
