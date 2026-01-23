@@ -1,0 +1,44 @@
+<!doctype HTML>
+
+<html>
+<head>
+
+<style>
+.example {
+  display: flex;
+  justify-content: space-between;
+}
+.right {
+  flex-basis: 50%;
+  height: 40em;
+}
+.right iframe {
+  height: 40em;
+}
+.left {
+  flex-basis: 30%;
+}
+</style>
+
+
+</head>
+<body>
+
+<div id="fs-example1-container" class="example">
+  <div class="left">
+  <p>An example that writes, then reads a file</p>
+  <pre id="fs-example1-code">
+  </pre>
+  </div>
+  <div id="fs-example1" class="right">
+  </div>
+</div>
+</body>
+
+<script type="module" src="../dist/pyret.js"></script>
+<script type="module" src="../dist/default-rpcs.js"></script>
+  
+<script type="module" src="fs-example1.js"></script>
+</html>
+
+

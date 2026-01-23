@@ -1,0 +1,30 @@
+{
+  "name": "pyret-embed",
+  "version": "0.0.46",
+  "description": "A library for embedding Pyret into webpages",
+  "main": "dist/pyret.js",
+  "files": [
+    "dist",
+    "types"
+  ],
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc; cd node_modules/code.pyret.org; make link-pyret; npm run build; cd ../..; npm run copy-pyret",
+    "copy-pyret": "cp -r node_modules/code.pyret.org/build dist/"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@zenfs/core": "^2.2.3",
+    "mustache": "^4.2.0",
+    "path-browserify": "^1.0.1",
+    "process": "^0.11.10",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.9"
+  },
+  "devDependencies": {
+    "code.pyret.org": "github:brownplt/code.pyret.org#horizon",
+    "webpack-cli": "^6.0.1"
+  }
+}
