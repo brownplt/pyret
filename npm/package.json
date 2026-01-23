@@ -1,0 +1,41 @@
+{
+  "name": "pyret-npm",
+  "version": "0.0.77",
+  "description": "The CLI for the Pyret programming language",
+  "files": [
+    "pyret.js",
+    "client-lib.js",
+    "pyret-lang/build/phaseA/*"
+  ],
+  "dependencies": {
+    "ascii-table": "^0.0.9",
+    "canvas": "^3.1.0",
+    "command-line-args": "^5.0.2",
+    "command-line-usage": "^5.0.5",
+    "mkdirp": "^0.5.1",
+    "resolve": "^1.22.10",
+    "strip-ansi": "^4.0.0",
+    "vega": "^6.1.2",
+    "ws": "^5.2.1"
+  },
+  "scripts": {
+    "build": "bash build.sh",
+    "test": "jest test/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brownplt/pyret-npm.git"
+  },
+  "bin": {
+    "pyret": "pyret.js"
+  },
+  "author": "The Pyret Crew",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/brownplt/pyret-npm/issues"
+  },
+  "homepage": "https://github.com/brownplt/pyret-npm#readme",
+  "devDependencies": {
+    "jest": "^30.0.0"
+  }
+}
