@@ -1,4 +1,4 @@
-name: Makefile CI
+name: code.pyret.org/ tests
 
 on:
   push:
