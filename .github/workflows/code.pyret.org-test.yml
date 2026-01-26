@@ -55,9 +55,6 @@ jobs:
     - name: Build web assets
       run: make web
 
-    - name: Deploy CPO main
-      run: make deploy-cpo-main
-
     - name: Set up test environment variables
       run: |
         echo "TEST_LOC=local" >> $GITHUB_ENV
