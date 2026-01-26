@@ -1,0 +1,31 @@
+name: Makefile CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./lang
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v3.9.1
+      with:
+        node-version: 24
+
+    - name: install
+      run: make install
+
+    - name: build
+      run: make
+
+    - name: run tests
+      run: make all-pyret-test
+
