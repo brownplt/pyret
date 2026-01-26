@@ -18,7 +18,9 @@ jobs:
       uses: actions/checkout@v4
 
     - name: Link pyret-lang
-      run: ln -s ../lang pyret
+      run: |
+        ln -s ../lang pyret
+        cd ../lang && npm install && make phaseA-deps
 
     - name: Set up Node.js
       uses: actions/setup-node@v4
