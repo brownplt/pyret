@@ -55,7 +55,7 @@ jobs:
       run: echo "$PWD/node_modules/.bin" >> $GITHUB_PATH
 
     - name: Build web assets
-      run: make web
+      run: npm run build
 
     - name: Set up test environment variables
       run: |
