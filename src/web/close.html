@@ -18,7 +18,7 @@ else {
 // This is the fallback for environments like GoGuardian that inject COOP headers
 if (typeof BroadcastChannel !== 'undefined') {
   try {
-    var channel = new BroadcastChannel('pyret_auth');
+    let channel = new BroadcastChannel('pyret_auth');
     channel.postMessage({ type: 'auth_complete' });
     channel.close();
   } catch (e) {

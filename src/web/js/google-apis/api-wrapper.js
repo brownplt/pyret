@@ -54,11 +54,18 @@ function reauth(immediate, useFullScopes) {
 
     // Track whether we've already resolved to avoid double-resolution
     var resolved = false;
-    function resolveOnce() {
+    function resolveOnce(method) {
       if (!resolved) {
+        console.log("INFO: Popup login resolved by: ", method);
         resolved = true;
+        // NOTE(joe): A useful thing to do for testing is to comment out this
+        // cleanup(), and check which of the 3 methods are returning success
+        // here. cleanup() will stop others from triggering.
         cleanup();
         d.resolve(reauth(true, useFullScopes));
+      }
+      else {
+        console.log("INFO: Popup login resolved again (ignored): ", method);
       }
     }
 
@@ -67,8 +74,10 @@ function reauth(immediate, useFullScopes) {
     function cleanup() {
       window.removeEventListener('message', messageHandler);
       window.removeEventListener('storage', storageHandler);
+      try { localStorage.removeItem('pyret_auth_complete'); } catch (err) {}
       if (channel) {
-        try { channel.close(); } catch (e) {}
+        try { channel.close(); }
+        finally { channel = null; }
       }
     }
 
@@ -76,7 +85,7 @@ function reauth(immediate, useFullScopes) {
     function messageHandler(e) {
       // e.domain appears to not be defined in Firefox
       if ((e.domain || e.origin) === document.location.origin) {
-        resolveOnce();
+        resolveOnce("postMessage");
       }
     }
     window.addEventListener('message', messageHandler);
@@ -88,7 +97,7 @@ function reauth(immediate, useFullScopes) {
         channel = new BroadcastChannel('pyret_auth');
         channel.onmessage = function(e) {
           if (e.data && e.data.type === 'auth_complete') {
-            resolveOnce();
+            resolveOnce("Broadcast");
           }
         };
       } catch (e) {
@@ -99,14 +108,14 @@ function reauth(immediate, useFullScopes) {
     // Method 3: localStorage fallback for very old browsers without BroadcastChannel
     function storageHandler(e) {
       if (e.key === 'pyret_auth_complete') {
-        resolveOnce();
+        resolveOnce("localStorage");
         // Clean up the flag
         try { localStorage.removeItem('pyret_auth_complete'); } catch (err) {}
       }
     }
-    window.addEventListener('storage', storageHandler);
     // Clear any stale auth flag before opening popup
     try { localStorage.removeItem('pyret_auth_complete'); } catch (e) {}
+    window.addEventListener('storage', storageHandler);
 
     // Need to do a login to get a cookie for this user; do it in a popup
     window.open(path);
