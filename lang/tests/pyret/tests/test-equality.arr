@@ -362,3 +362,16 @@ check "https://github.com/brownplt/pyret-lang/issues/895":
     [list: "top","mid-b"],
     [list: "top","mid-b","low-b-a"]])
 end
+
+fun is-function-equality-failure(exn):
+  E.is-equality-failure(exn) and exn.reason == "Functions"
+end
+
+check "function equality errors consistent (<=> vs identical vs identical3)":
+  f = lam(): 1 end
+  g = f
+
+  (f <=> g) raises-satisfies is-function-equality-failure
+  identical(f, g) raises-satisfies is-function-equality-failure
+  E.to-boolean(identical3(f, g)) raises-satisfies is-function-equality-failure
+end

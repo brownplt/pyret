@@ -2598,20 +2598,13 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["identical3"], 2, $a, false); }
       return identical3(v1, v2);
     }, "identical3");
-    // JS function from Pyret values to JS true/false or throws
+    // JS function from Pyret values to Pyret booleans (or throws)
     function identical(v1, v2) {
-      if (arguments.length !== 2) { var $a=new Array(arguments.length); for (var $i=0;$i<arguments.length;$i++) { $a[$i]=arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["identical"], 2, $a, false); }
-      var ans = identical3(v1, v2);
-      if (thisRuntime.ffi.isEqual(ans)) { return true; }
-      else if (thisRuntime.ffi.isNotEqual(ans)) { return false; }
-      else if (thisRuntime.ffi.isUnknown(ans)) {
-        thisRuntime.ffi.throwEqualityException(getField(ans, "reason"), getField(ans, "value1"), getField(ans, "value2"));
-      }
+      if (arguments.length !== 2) { var $a = new Array(arguments.length); for (var $i = 0; $i < arguments.length; $i++) { $a[$i] = arguments[$i]; } throw thisRuntime.ffi.throwArityErrorC(["identical"], 2, $a, false); }
+      return safeCall(function () {
+        return identical3(v1, v2);
+      }, equalityToBool, "identical");
     };
-    // Pyret function from Pyret values to Pyret booleans (or throws)
-    var identicalPy = makeFunction(function(v1, v2) {
-      return makeBoolean(identical(v1, v2));
-    }, "identical");
 
     var gensymCounter = Math.floor(Math.random() * 1000);
     var gensym = makeFunction(function(base) {
@@ -6041,7 +6034,7 @@ function (Namespace, jsnums, codePoint, util, exnStackParser, loader, seedrandom
       'ref-freeze' : makeFunction(freezeRef, "ref-freeze"),
 
       'identical3': identical3Py,
-      'identical': identicalPy,
+      'identical': makeFunction(identical, "identical"),
       'equal-now3': makeFunction(equalNow3, "equal-now3"),
       'equal-now': makeFunction(equalNow, "equal-now"),
       'equal-always3': makeFunction(equalAlways3, "equal-always3"),
