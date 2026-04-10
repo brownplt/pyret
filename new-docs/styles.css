@@ -195,15 +195,192 @@ ul.glossary {
    display: inline-block;
 }
 
-.container {
+:root {
+  --primary-50: #317CCF;
+  --bg-grey: #f8f8f8;
+}
+
+.page-body {
+  display: flex;
+}
+
+.sidebar {
+  display: flex;
+  width: 300px;
+  flex-shrink: 0;
+  padding: 24px;
+  flex-direction: column;
+  align-items: flex-start;
+  position: sticky;
+  top: 90px;
+  height: calc(100vh - 90px);
+  overflow-y: auto;
+  border-right: 1px solid #ddd;
+  box-sizing: border-box;
+  background-color: var(--bg-grey);
+}
+
+.sidebar-nav {
   width: 100%;
 }
 
+.sidebar-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+}
+
+/* Nested lists hidden by default */
+.sidebar-item.has-children > .sidebar-list {
+  display: none;
+}
+
+.sidebar-item.has-children.open > .sidebar-list {
+  display: block;
+}
+
+.sidebar-item {
+  width: 100%;
+}
+
+/* ── Item rows ── */
+.sidebar-item-row {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 8px 16px;
+  border-left: 2px solid #E8E8E8;
+  box-sizing: border-box;
+  width: 100%;
+  gap: 10px;
+  cursor: pointer;
+}
+
+/* Top-level headings (Pyret Concepts, current section header) have no left border */
+.sidebar-nav > .sidebar-list > .sidebar-item > .sidebar-item-row {
+  border-left: none;
+}
+
+.sidebar-item-row.active {
+  border-left-color: var(--primary-50);
+}
+
+/* Hover: muted grey text, border unchanged */
+.sidebar-item-row:hover .sidebar-link {
+  color: #888;
+}
+
+/* ── Typography by depth ── */
+
+/* Section headings (top-level items without numbers) */
+.sidebar-section-heading .sidebar-link {
+  font-weight: 500;
+}
+
+/* Level 2: chapter items — regular 16px (default) */
+.sidebar-list .sidebar-list > .sidebar-item > .sidebar-item-row .sidebar-link {
+  font-weight: 400;
+  font-size: 16px;
+}
+
+/* Level 3+: subsection items — 14px black */
+.sidebar-list .sidebar-list .sidebar-list > .sidebar-item > .sidebar-item-row .sidebar-link {
+  font-size: 14px;
+  font-family: Roboto, sans-serif;
+  color: #000;
+}
+
+/* Nested list: narrows from the right so chevrons are staggered. */
+.sidebar-list .sidebar-list {
+  width: auto;
+  margin-right: 16px;
+}
+
+/* First-level nested list: shift right so the border sits under the heading text. */
+.sidebar-nav > .sidebar-list > .sidebar-item > .sidebar-list {
+  margin-left: 16px;
+}
+
+/* Compensate padding so content stays at the same visual positions (28px, 40px from edge). */
+.sidebar-list .sidebar-list > .sidebar-item > .sidebar-item-row {
+  padding-left: 12px;
+}
+
+.sidebar-list .sidebar-list .sidebar-list > .sidebar-item > .sidebar-item-row {
+  padding-left: 24px;
+}
+
+.sidebar-link {
+  flex: 1;
+  text-decoration: none;
+  color: #040506;
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 150%;
+  user-select: none;
+}
+
+.sidebar-item-row.active .sidebar-link {
+  color: var(--primary-50);
+}
+
+/* Click flash: briefly turns blue, reverts after 300ms.
+   Use .sidebar-item-row wrapper to beat the hover rule's specificity. */
+.sidebar-item-row .sidebar-link.clicking,
+.sidebar-item-row:hover .sidebar-link.clicking {
+  color: var(--primary-50);
+}
+
+.sidebar-item-row:has(.sidebar-link.clicking) {
+  border-left-color: var(--primary-50);
+}
+
+.sidebar-chevron {
+  background: none;
+  border: none;
+  padding: 0 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: #666;
+  flex-shrink: 0;
+}
+
+.sidebar-chevron-icon {
+  font-size: 24px;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  line-height: 1;
+  user-select: none;
+  display: inline-block;
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+
+.sidebar-item.has-children.open > .sidebar-item-row .sidebar-chevron .sidebar-chevron-icon {
+  transform: rotate(-90deg);
+}
+
+/* Nested items — smaller chevrons */
+.sidebar-list .sidebar-list > .sidebar-item > .sidebar-item-row .sidebar-chevron .sidebar-chevron-icon {
+  font-size: 15px;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 15;
+}
+
+/* Selected-state chevron inherits the blue link color */
+.sidebar-item-row.active .sidebar-chevron {
+  color: var(--primary-50);
+}
+
+.container {
+  width: 100%;
+  min-width: 0;
+  padding: 24px 0 0 24px;
+  box-sizing: border-box;
+}
+
 @media (min-width: 800px) {
-  .container {
-    max-width: 72ch;
-    margin: 0 auto;
-  }
   h1,h2,h3,h4,h5,h6 {
     margin-left: -1em;
   }
@@ -246,7 +423,7 @@ h3 {
   font-size: 20px;
 }
 
-h4 { 
+h4 {
   margin-top: 1em;
   font-size: 20px;
 }
@@ -263,16 +440,75 @@ h4 {
   display: none;
 }
 
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: #fff;
+  border-bottom: 1px solid #ddd;
+  height: 90px;
+  padding: 24px 60px 24px 0;
+  display: flex;
+  align-items: center;
+}
+
+.topbar-logo {
+  margin-left: 24px;
+  height: 42px;
+  width: auto;
+}
+
+.searchform {
+  display: flex;
+  padding: 12px;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  width: 526px;
+  border-radius: 4px;
+  border: 1px solid #D8D8D8;
+  background: #FFF;
+  margin-left: 70px;
+}
+
+.search-icon {
+  font-size: 24px;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  flex-shrink: 0;
+  color: #666;
+  line-height: 1;
+  user-select: none;
+}
+
 .searchbox {
-  width: 16em;
-  margin-top: 1em;
-  margin-left: 1em;
-  padding: 0px;
-  background-color: #eee;
-  border: 1px solid #ddd;
-  vertical-align: middle;
+  flex: 1;
+  height: 24px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 14px;
+  color: #333;
+  padding: 0;
 }
 
 .searchbox::placeholder {
-  text-align: center;
+  color: #999;
+}
+
+.topbar-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+}
+
+.topbar-link {
+  text-decoration: none;
+  color: #040506;
+  white-space: nowrap;
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 150%;
 }

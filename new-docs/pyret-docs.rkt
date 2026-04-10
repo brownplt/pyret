@@ -365,6 +365,21 @@
 (define (append-gen-docs . desc)
   "")
 
+(define (section-number-css here-html)
+  (define p (page-section-prefix here-html))
+  (if (not p)
+      ""
+      (let ([pd (string-append p ".")])
+        (string-append
+          ".container { counter-reset: h2c 0; }\n"
+          ".container h1::before { content: \"" p " \"; }\n"
+          ".container h2 { counter-increment: h2c; counter-reset: h3c 0; }\n"
+          ".container h2::before { content: \"" pd "\" counter(h2c) \" \"; }\n"
+          ".container h3 { counter-increment: h3c; counter-reset: h4c 0; }\n"
+          ".container h3::before { content: \"" pd "\" counter(h2c) \".\" counter(h3c) \" \"; }\n"
+          ".container h4 { counter-increment: h4c; }\n"
+          ".container h4::before { content: \"" pd "\" counter(h2c) \".\" counter(h3c) \".\" counter(h4c) \" \"; }\n"))))
+
 (define (add-paras info)
      ; (printf "### add-paras ~s\n" info)
      ; (printf "### first info = ~s\n" (car info))
