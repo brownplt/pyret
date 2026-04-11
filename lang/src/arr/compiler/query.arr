@@ -6,10 +6,11 @@ provide *
 
 import either as E
 import srcloc as S
+import ast as A
 import file("compile-structs.arr") as CS
 
 # TODO: debug / figure out where exactly we have to check locations
-fun find-name-key-by-srcloc(resolved :: A.Program, srcloc :: Loc) -> Option<String> block:
+fun find-name-key-by-srcloc(resolved :: A.Program, srcloc :: A.Loc) -> Option<String> block:
   var result-mangled-name = none
   visitor = A.default-iter-visitor.{
     # Use sites: s-id(use-l, atom/global) — match on the outer l, return inner key
@@ -66,7 +67,7 @@ fun find-name-at(prog :: A.Program, line :: Number, col :: Number) -> Option<A.N
   var result-name = none
   visitor = A.default-iter-visitor.{
     method s-name(self, l, s):
-      cases (Loc) l:
+      cases (A.Loc) l:
         | builtin(_) => true
         | srcloc(_, sl, sc, _, el, ec, _) =>
           if (sl <= line) and (line <= el) and (sc <= col) and (col <= ec) block:
@@ -87,13 +88,13 @@ fun jump-to-def(cache-manager, uri :: String, line :: Number, col :: Number) -> 
   cases(Option) cache-manager.get-surface-ast(uri):
     | none => E.left("AST not available")
     | some(ast) =>
-      cases(Option) AU.find-name-at(ast, line, col):
+      cases(Option) find-name-at(ast, line, col):
         | none => E.left("Did not select an identifier")
         | some(name) =>
           cases(Option) cache-manager.get-named-result(uri):
             | none => E.left("Resolved AST not available")
             | some(named-result) =>
-              cases(Option) AU.find-name-key-by-srcloc(named-result.ast, name.l):
+              cases(Option) find-name-key-by-srcloc(named-result.ast, name.l):
                 | none => E.left("Post-resolution name not found")
                 | some(key) =>
                   cases(Option) named-result.env.bindings.get-now(key):

@@ -578,7 +578,6 @@ sharing:
   end
 end
 
-# ZACK: no loc
 data DefinedModule:
   | s-defined-module(name :: String, value :: Name, uri :: String) with:
     method label(self): "s-defined-module" end,
@@ -591,7 +590,6 @@ sharing:
   end
 end
 
-# ZACK: no loc
 data DefinedValue:
   | s-defined-value(name :: String, value :: Expr) with:
     method label(self): "s-defined-value" end,
@@ -1373,7 +1371,6 @@ sharing:
   end
 end
 
-# ZACK: doesn't have loc
 data ConstructModifier:
   | s-construct-normal with:
     method label(self): "s-construct-normal" end,
@@ -1493,7 +1490,6 @@ sharing:
   end
 end
 
-# ZACK: no loc
 data ColumnSortOrder:
   | ASCENDING with:
     method tosource(self):
@@ -1574,7 +1570,6 @@ sharing:
   end
 end
 
-# ZACK: no loc
 data VariantMemberType:
   | s-normal with:
     method label(self): "s-normal" end,
@@ -1674,7 +1669,6 @@ sharing:
   end
 end
 
-# ZACK: NO LOC
 data CasesBindType:
   | s-cases-bind-ref with:
     method label(self): "s-cases-bind-ref" end,
@@ -1783,7 +1777,6 @@ sharing:
   end
 end
 
-# a-blank HAS NO LOC, nor a-checked
 data Ann:
   | a-blank with:
     method label(self): "a-blank" end,
