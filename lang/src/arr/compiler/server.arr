@@ -160,8 +160,8 @@ fun on-query(pyret-dir, cache-manager, query, compile-opts, query-opts, send-mes
       ask:
         | query == "jump-to-def" then:
           cases(E.Either) info-result block:
-            | left(errors) =>
-              err("jump-to-def: no result (errors: " + torepr(errors) + ")\n")
+            | left(error-str) =>
+              err("jump-to-def: no result (errors: " + error-str + ")\n")
               d = [SD.string-dict: "type", J.j-str("jump-to-def-failure")]
               send-message(J.j-obj(d).serialize())
             | right(loc-info) =>
