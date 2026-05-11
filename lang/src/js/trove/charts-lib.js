@@ -2880,14 +2880,14 @@
     function recomputePoints(func, samplePoints, then) {
       return RUNTIME.safeCall(() => {
         return RUNTIME.raw_array_map(RUNTIME.makeFunction((sample) => {
-          return RUNTIME.execThunk(RUNTIME.makeFunction(() => func.app(sample)));
+          return RUNTIME.execThunk(RUNTIME.makeFunction(() => func.app(jsnums.fromFixnum(sample))));
         }), samplePoints);
       }, (funcVals) => {
         const dataValues = [];
         funcVals.forEach((result, idx) => {
           cases(RUNTIME.ffi.isEither, 'Either', result, {
             left: (value) => dataValues.push({
-              x: toFixnum(samplePoints[idx]),
+              x: samplePoints[idx],
               y: toFixnum(value)
             }),
             right: () => {}
@@ -3316,8 +3316,8 @@
               }
               // Reflect the updated values back into the globalOptions,
               // so that they'll be picked up by the initial computation of function plots
-              globalOptions['x-min'] = RUNTIME.ffi.makeSome(clippedDomain[0]);
-              globalOptions['x-max'] = RUNTIME.ffi.makeSome(clippedDomain[1]);
+              globalOptions['x-min'] = RUNTIME.ffi.makeSome(jsnums.fromFixnum(clippedDomain[0]));
+              globalOptions['x-max'] = RUNTIME.ffi.makeSome(jsnums.fromFixnum(clippedDomain[1]));
               return RUNTIME.safeCall(
                 () => makeFunctionPlots(clippedDomain),
                 (functionPlots) => composeCharts(globalOptions, clippedDomain, {

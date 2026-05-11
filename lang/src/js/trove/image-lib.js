@@ -1387,8 +1387,6 @@
     var PointPolygonImage = function(vertices, style, color) {
       BaseImage.call(this);
       for (var v = 0; v < vertices.length; v++) {
-        vertices[v].x = jsnums.toFixnum(vertices[v].x);
-        vertices[v].y = jsnums.toFixnum(vertices[v].y);
         vertices[v].y *= -1;
       }
       
