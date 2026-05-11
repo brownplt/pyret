@@ -212,82 +212,101 @@ define("pyret-base/js/js-numbers", function() {
 
 
     // isPyretNumber: any -> boolean
-    // Returns true if the thing is a pyretnum
+    // Pure predicate. Raw JS numbers must be integers (the fixnum
+    // representation) to count as pyretnums; non-integer JS numbers
+    // are not valid pyretnums and return false.
     var isPyretNumber = function(thing) {
-      return (typeof(thing) === 'number'
-              || (thing instanceof Rational ||
-                  thing instanceof Roughnum ||
-                  thing instanceof BigInteger));
+      if (typeof(thing) === 'number') return Number.isInteger(thing);
+      return (thing instanceof Rational ||
+              thing instanceof Roughnum ||
+              thing instanceof BigInteger);
+    };
+
+    // assertPyretNumber: contract check for entry-point operations that
+    // require a pyretnum. Throws a domainError for clearly wrong types
+    // (string, null, etc.). For non-integer JS numbers, logs to
+    // console.error rather than throwing — we don't yet have full
+    // coverage of all call sites that may pass these in, and an
+    // exception in the wild from existing code we haven't audited would
+    // be worse than the current lax behavior. Flip the non-integer
+    // branch to errbacks.throwDomainError once we're confident.
+    var assertPyretNumber = function(thing, callerName) {
+      if (typeof thing === 'number') {
+        if (!Number.isInteger(thing)) {
+          console.error(
+            'js-numbers ' + callerName +
+              ': non-integer JS number leaked into pyretnum: ' + thing,
+            new Error('stack').stack);
+        }
+        return;
+      }
+      if (thing instanceof Rational ||
+          thing instanceof Roughnum ||
+          thing instanceof BigInteger) {
+        return;
+      }
+      errbacks.throwDomainError(
+        callerName + ': arg ' + thing + ' is not a number.');
     };
 
     // isRational: pyretnum -> boolean
     var isRational = function(n) {
-      return (typeof(n) === 'number' ||
-              (isPyretNumber(n) && n.isRational()));
+      if (!isPyretNumber(n)) return false;
+      if (typeof(n) === 'number') return true;
+      return n.isRational();
     };
 
     var isExact = isRational;
 
     // isReal: pyretnum -> boolean
     var isReal = function(n) {
-      return (typeof(n) === 'number' ||
-              (isPyretNumber(n) && n.isReal()));
+      if (!isPyretNumber(n)) return false;
+      if (typeof(n) === 'number') return true;
+      return n.isReal();
     };
 
     // isInteger: pyretnum -> boolean
     var isInteger = function(n) {
-      if (typeof(n) === 'number') return Number.isInteger(n);
-      if (isPyretNumber(n)) return n.isInteger();
-      return false;
+      if (!isPyretNumber(n)) return false;
+      if (typeof(n) === 'number') return true;
+      return n.isInteger();
     };
 
     var isRoughnum = function(n) {
-      if (typeof(n) === 'number') {
-        return false;
-      } else {
-        return (isPyretNumber(n) && n.isRoughnum());
-      }
+      if (!isPyretNumber(n)) return false;
+      if (typeof(n) === 'number') return false;
+      return n.isRoughnum();
     };
 
     var isPositive = function(n) {
-      if (typeof(n) === 'number') {
-        return n > 0;
-      } else {
-        return (isPyretNumber(n) && n.isPositive());
-      }
+      if (!isPyretNumber(n)) return false;
+      if (typeof(n) === 'number') return n > 0;
+      return n.isPositive();
     };
 
     var isNonPositive = function(n) {
-      if (typeof(n) === 'number') {
-        return n <= 0;
-      } else {
-        return (isPyretNumber(n) && n.isNonPositive());
-      }
+      if (!isPyretNumber(n)) return false;
+      if (typeof(n) === 'number') return n <= 0;
+      return n.isNonPositive();
     };
 
     var isNegative = function(n) {
-      if (typeof(n) === 'number') {
-        return n < 0;
-      } else {
-        return (isPyretNumber(n) && n.isNegative());
-      }
+      if (!isPyretNumber(n)) return false;
+      if (typeof(n) === 'number') return n < 0;
+      return n.isNegative();
     };
 
     var isNonNegative = function(n) {
-      if (typeof(n) === 'number') {
-        return n >= 0;
-      } else {
-        return (isPyretNumber(n) && n.isNonNegative());
-      }
+      if (!isPyretNumber(n)) return false;
+      if (typeof(n) === 'number') return n >= 0;
+      return n.isNonNegative();
     };
 
     // toFixnum: pyretnum -> javascript-number
     var toFixnum = function(n) {
-      if (typeof(n) === 'number')
-        return n;
-      if (isPyretNumber(n))
-        return n.toFixnum();
-      errbacks.throwDomainError('toFixnum: arg ' + n + ' is not a number.');
+      assertPyretNumber(n, 'toFixnum');
+      if (typeof(n) === 'number') return n;
+      return n.toFixnum();
     };
 
     // toRational: pyretnum -> pyretnum
@@ -875,14 +894,14 @@ define("pyret-base/js/js-numbers", function() {
           return atan(divide(y, x));
         } else { // x > 0, y < 0, 4th qdt
           // atan(y/x) is the 4th qdt and negative, so make it positive by adding 2pi
-          return add(atan(divide(y, x)), 2*Math.PI);
+          return add(atan(divide(y, x)), Roughnum.makeInstance(2*Math.PI));
         }
       } else { // x < 0
         // either x < 0, y >= 0 (2nd qdt), in which case
         //        atan(y/x) must be reflected from 4th to 2nd qdt, by adding pi
         //     or x < 0, y < 0  (3rd qdt), in which case
         //        atan(y/x) must be reflected from 1st to 3rd qdt, again by adding pi
-        return add(atan(divide(y, x)), Math.PI);
+        return add(atan(divide(y, x)), Roughnum.makeInstance(Math.PI));
       }
     };
 
