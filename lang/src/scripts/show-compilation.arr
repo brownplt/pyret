@@ -6,6 +6,7 @@ import parse-pyret as P
 import string-dict as SD
 import pprint as PP
 import pathlib as PL
+import render-error-display as RED
 import file("../../src/arr/compiler/desugar.arr") as D
 import file("../../src/arr/compiler/desugar-check.arr") as DC
 import ast as A
@@ -128,7 +129,18 @@ cases (C.ParsedArguments) parsed-options block:
         comp = cases(E.Either) compiled block:
           | left(v) =>
             println("Compilation failed")
-            {_; traces} = v
+            {loadables; traces} = v
+            errors = loadables
+              .filter(CL.is-error-compilation)
+              .map(_.result-printer)
+              .map(_.problems)
+              .foldr(_ + _, empty)
+
+            for each(err from errors) block:
+              println(to-repr(err))
+              println(RED.display-to-string(err.render-reason(), torepr, empty))
+            end
+
             traces.get-value-now(PL.basename(file, ""))
           | right(v) =>
             {_; traces} = v
